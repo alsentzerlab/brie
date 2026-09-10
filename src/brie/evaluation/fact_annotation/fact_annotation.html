@@ -1,0 +1,776 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fact Annotation (blinded)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f6f7f9;
+    --card: #fff;
+    --border: #e3e6ea;
+    --border-strong: #d0d4da;
+    --muted: #8a909a;
+    --text: #1b1f24;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --present: #16a34a;
+    --present-light: #f0fdf4;
+    --absent: #64748b;
+    --absent-light: #f1f5f9;
+    --warn: #dc2626;
+    --mark: #fde68a;
+    --mark-cur: #f59e0b;
+    --radius: 10px;
+    --shadow: 0 1px 3px rgba(0,0,0,.06);
+  }
+
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg); color: var(--text); font-size: 14px; line-height: 1.5; }
+
+  #app { display: flex; height: 100vh; overflow: hidden; }
+
+  /* ── Sidebar ── */
+  #sidebar { width: 200px; flex-shrink: 0; background: var(--card);
+    border-right: 1px solid var(--border); display: flex; flex-direction: column; }
+  #sidebar-header { padding: 14px; border-bottom: 1px solid var(--border); }
+  #sidebar-header h2 { font-size: 11px; font-weight: 700; color: var(--muted);
+    text-transform: uppercase; letter-spacing: .05em; }
+  #pb-wrap { margin-top: 7px; height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  #pb { height: 100%; background: var(--accent); width: 0; transition: width .3s; }
+  #pb-label { font-size: 11px; color: var(--muted); margin-top: 4px; }
+  #nav-list { flex: 1; overflow-y: auto; padding: 4px 0; }
+  .nav-item { display: flex; align-items: center; gap: 6px; padding: 6px 12px;
+    cursor: pointer; font-size: 12px; border-left: 3px solid transparent; color: var(--muted); }
+  .nav-item:hover { background: #f3f6fc; }
+  .nav-item.active { border-left-color: var(--accent); color: var(--text); background: var(--accent-light); }
+  .nav-item.done { color: var(--text); }
+  .nav-ck { font-size: 12px; color: var(--present); font-weight: 700; margin-left: auto; }
+  #kbd-help { padding: 9px 12px; border-top: 1px solid var(--border); font-size: 10.5px; color: var(--muted); line-height: 1.7; }
+  #kbd-help kbd { background: #eef1f5; border: 1px solid var(--border-strong); border-radius: 4px;
+    padding: 0 4px; font-size: 10px; font-family: ui-monospace, monospace; color: #444; }
+
+  /* ── Main ── */
+  #main { flex: 1; overflow-y: auto; }
+
+  /* ── Sticky head (nav + search + question + pinned answers) ── */
+  #sticky-head { position: sticky; top: 0; z-index: 10; background: var(--bg);
+    padding: 14px 22px 10px; border-bottom: 1px solid var(--border); }
+
+  #nav-bar { display: flex; align-items: center; gap: 8px; }
+  #nav-bar h1 { font-size: 16px; font-weight: 700; margin-right: auto; }
+  .btn { padding: 7px 14px; border-radius: 7px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--border-strong); background: var(--card); color: var(--text); }
+  .btn:hover { background: #f0f2f5; }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-success { background: var(--present); color: #fff; border-color: var(--present); }
+  #skip-note { font-size: 12px; color: var(--muted); }
+
+  /* ── Find bar ── */
+  #find-bar { display: flex; align-items: center; gap: 8px; margin-top: 10px; }
+  #find-input { flex: 1; max-width: 460px; padding: 7px 11px; border: 1px solid var(--border-strong);
+    border-radius: 7px; font-size: 13px; }
+  #find-input:focus { outline: none; border-color: var(--accent); box-shadow: 0 0 0 3px var(--accent-light); }
+  #find-count { font-size: 12px; color: var(--muted); min-width: 84px; }
+  .find-btn { padding: 5px 9px; font-size: 12px; }
+  #find-hint { font-size: 11px; color: var(--muted); margin-left: auto; }
+  #q-text { font-size: 14px; font-weight: 600; line-height: 1.35; margin-top: 10px; }
+
+  /* ── Pinned side-by-side answers ── */
+  #source-pane { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 10px; }
+  #source-pane.collapsed { display: none; }
+  .src-col { border: 1px solid var(--border); border-radius: 8px; background: var(--card); overflow: hidden;
+    display: flex; flex-direction: column; }
+  .src-head { padding: 7px 12px; background: #fafbfc; border-bottom: 1px solid var(--border);
+    font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .05em; color: var(--muted);
+    display: flex; align-items: center; gap: 8px; }
+  .src-head .for { text-transform: none; letter-spacing: 0; font-weight: 500; color: #9aa1ab; font-size: 10.5px; }
+  .src-body { padding: 10px 12px; font-size: 13px; line-height: 1.55; white-space: pre-wrap;
+    color: #2b3038; max-height: 24vh; overflow-y: auto; }
+  #src-toggle { font-size: 11px; color: var(--accent); cursor: pointer; user-select: none; }
+
+  /* ── Facts ── */
+  #facts-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; padding: 14px 22px 28px; }
+  @media (max-width: 1040px) { #facts-grid { grid-template-columns: 1fr; } #source-pane { grid-template-columns: 1fr; } }
+  .fcol { background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); box-shadow: var(--shadow); overflow: hidden; }
+  .fcol.active { border-color: var(--accent); box-shadow: 0 0 0 2px var(--accent-light); }
+  .fcol-head { padding: 10px 14px; background: #fafbfc; border-bottom: 1px solid var(--border); }
+  .fcol-title { font-size: 12px; font-weight: 700; display: flex; align-items: center; gap: 8px; }
+  .fcol-count { margin-left: auto; font-size: 11px; font-weight: 600; color: var(--muted);
+    background: #eef1f5; padding: 1px 8px; border-radius: 99px; }
+  .fcol-sub { font-size: 11px; color: var(--muted); margin-top: 2px; font-weight: 400; }
+
+  /* column toolbar */
+  .col-tools { display: flex; align-items: center; gap: 6px; margin-top: 8px; flex-wrap: wrap; }
+  .col-filter { flex: 1; min-width: 120px; padding: 4px 8px; border: 1px solid var(--border-strong);
+    border-radius: 6px; font-size: 12px; }
+  .col-filter:focus { outline: none; border-color: var(--accent); }
+  .tool-btn { padding: 4px 8px; font-size: 11px; border-radius: 6px; border: 1px solid var(--border-strong);
+    background: #fff; color: var(--muted); cursor: pointer; white-space: nowrap; }
+  .tool-btn:hover { background: #f0f2f5; }
+  .tool-btn.on { background: var(--accent-light); border-color: var(--accent); color: var(--accent); }
+  .tool-btn.bulk-p:hover { background: var(--present-light); border-color: var(--present); color: var(--present); }
+  .tool-btn.bulk-a:hover { background: var(--absent-light); border-color: var(--absent); color: var(--absent); }
+
+  .fcol-body { padding: 4px 6px 8px; }
+
+  .fact-row { display: flex; align-items: center; gap: 12px; padding: 9px 8px;
+    border-bottom: 1px solid #f1f2f4; border-radius: 6px; }
+  .fact-row:last-of-type { border-bottom: none; }
+  .fact-row.cursor { box-shadow: inset 0 0 0 2px var(--accent); background: var(--accent-light); }
+  .fact-body { flex: 1; min-width: 0; }
+  .fact-num { color: var(--muted); font-size: 11px; margin-right: 6px; }
+  .fact-txt { font-size: 13px; line-height: 1.45; }
+  .expl-tag { display: inline-flex; align-items: center; gap: 3px; margin-top: 4px;
+    font-size: 11px; color: var(--accent); cursor: pointer; font-weight: 500; }
+  .expl-tag:hover { text-decoration: underline; }
+  .expl-tag.has-note { color: #b45309; }
+
+  .seg { display: flex; flex-shrink: 0; border: 1px solid var(--border-strong);
+    border-radius: 7px; overflow: hidden; }
+  .seg-btn { padding: 5px 12px; font-size: 12px; font-weight: 600; cursor: pointer;
+    border: none; background: #fff; color: var(--muted); min-width: 64px; }
+  .seg-btn + .seg-btn { border-left: 1px solid var(--border-strong); }
+  .seg-btn:hover { background: #f4f6f8; }
+  .seg-present.on { background: var(--present); color: #fff; }
+  .seg-absent.on  { background: var(--absent);  color: #fff; }
+  .seg-present.on:hover { background: #15803d; }
+  .seg-absent.on:hover  { background: #475569; }
+
+  .empty { font-size: 12px; color: var(--muted); font-style: italic; padding: 10px 6px; }
+
+  mark { background: var(--mark); border-radius: 2px; padding: 0 1px; }
+  mark.cur { background: var(--mark-cur); color: #fff; }
+
+  /* ── Modal ── */
+  #modal-overlay { display: none; position: fixed; inset: 0; background: rgba(15,20,28,.45);
+    z-index: 50; align-items: center; justify-content: center; padding: 20px; }
+  #modal-overlay.show { display: flex; }
+  #modal { background: var(--card); border-radius: var(--radius); width: 100%; max-width: 480px;
+    box-shadow: 0 12px 40px rgba(0,0,0,.25); overflow: hidden; }
+  #modal-top { padding: 16px 18px 0; }
+  #modal h3 { font-size: 15px; font-weight: 700; margin-bottom: 10px; }
+  #modal-fact { font-size: 13px; background: #f6f7f9; border: 1px solid var(--border);
+    border-radius: 7px; padding: 9px 11px; line-height: 1.45; }
+  #modal-choice-row { margin-top: 10px; font-size: 12px; color: var(--muted); display: flex; align-items: center; gap: 7px; }
+  .modal-choice { padding: 2px 10px; border-radius: 99px; font-size: 12px; font-weight: 700; color: #fff; }
+  .modal-choice.present { background: var(--present); }
+  .modal-choice.absent  { background: var(--absent); }
+  .modal-choice.unset   { background: var(--muted); }
+  #modal label { display: block; font-size: 12px; font-weight: 600; margin: 14px 0 5px; }
+  #modal-expl { width: 100%; padding: 8px 10px; border: 1px solid var(--border-strong);
+    border-radius: 7px; font-size: 13px; font-family: inherit; resize: vertical; min-height: 80px; }
+  #modal-expl:focus { outline: none; border-color: var(--accent); }
+  #modal-actions { display: flex; gap: 8px; justify-content: flex-end; padding: 4px 18px 18px; }
+
+  /* ── Load screen ── */
+  #load-screen { display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: var(--bg); }
+  #load-card { background: var(--card); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 30px 38px; max-width: 460px; width: 100%;
+    box-shadow: var(--shadow); }
+  #load-card h1 { font-size: 19px; font-weight: 700; margin-bottom: 6px; }
+  #load-card p  { color: var(--muted); font-size: 13px; margin-bottom: 18px; }
+  .fg label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; }
+  #load-err { color: var(--warn); font-size: 12px; margin-top: 6px; }
+</style>
+</head>
+<body>
+
+<div id="load-screen">
+  <div id="load-card">
+    <h1>Fact Annotation (blinded)</h1>
+    <p>Load a blinded sample JSON generated by <code>sample_fact_entailment.py</code>.</p>
+    <div class="fg">
+      <label>Sample JSON</label>
+      <input type="file" id="file-json" accept=".json">
+    </div>
+    <div id="load-err"></div>
+    <br>
+    <button class="btn btn-primary" onclick="loadFile()">Load &amp; Start</button>
+  </div>
+</div>
+
+<div id="app" style="display:none">
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <h2>Progress</h2>
+      <div id="pb-wrap"><div id="pb"></div></div>
+      <div id="pb-label">0 / 0</div>
+    </div>
+    <div id="nav-list"></div>
+    <div id="kbd-help">
+      <b style="color:#555">Keyboard</b><br>
+      <kbd>p</kbd> present · <kbd>a</kbd> absent<br>
+      <kbd>j</kbd>/<kbd>k</kbd> or <kbd>↑</kbd>/<kbd>↓</kbd> move · <kbd>Tab</kbd> switch column<br>
+      <kbd>Ctrl/⌘F</kbd> find · <kbd>↵</kbd>/<kbd>⇧↵</kbd> next/prev · <kbd>Esc</kbd> clear<br>
+      <kbd>→</kbd> save &amp; next · <kbd>←</kbd> prev · <kbd>s</kbd> skip
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="sticky-head">
+      <div id="nav-bar">
+        <h1>Fact Annotation</h1>
+        <span id="skip-note"></span>
+        <button class="btn" onclick="navigate(-1)">← Prev</button>
+        <button class="btn" onclick="skipCard()">Skip</button>
+        <button class="btn btn-primary" onclick="saveAndNext()">Save &amp; Next →</button>
+        <button class="btn btn-success" onclick="exportAnnotations()">Export JSON</button>
+      </div>
+
+      <div id="find-bar">
+        <input id="find-input" type="text" placeholder="Find in answers &amp; facts (fuzzy)…  — Ctrl/⌘F"
+          oninput="onFind()" onkeydown="findKey(event)">
+        <button class="btn find-btn" onclick="stepMatch(-1)" title="Previous (Shift+Enter)">↑</button>
+        <button class="btn find-btn" onclick="stepMatch(1)" title="Next (Enter)">↓</button>
+        <span id="find-count"></span>
+        <span id="find-hint" onclick="toggleSource()" style="cursor:pointer">▾ hide answers</span>
+      </div>
+
+      <div id="q-text"></div>
+
+      <div id="source-pane">
+        <div class="src-col">
+          <div class="src-head">Reference answer <span class="for">— check Answer facts against this</span></div>
+          <div class="src-body" id="ref-answer"></div>
+        </div>
+        <div class="src-col">
+          <div class="src-head">Candidate answer <span class="for">— check Reference facts against this</span></div>
+          <div class="src-body" id="cand-answer"></div>
+        </div>
+      </div>
+    </div>
+
+    <div id="facts-grid">
+      <div class="fcol" id="fcol-r" onclick="setActive('r')">
+        <div class="fcol-head">
+          <div class="fcol-title">Reference facts <span class="fcol-count" id="rec-count"></span></div>
+          <div class="fcol-sub">Is each reference fact present in the <b>candidate answer</b>?</div>
+          <div class="col-tools">
+            <input class="col-filter" id="filter-r" placeholder="filter…" oninput="applyColFilter('r')">
+            <button class="tool-btn" id="unmarked-r" onclick="toggleUnmarked('r',event)">unmarked only</button>
+            <button class="tool-btn bulk-p" onclick="bulkMark('r',true,event)">rest ✓Present</button>
+            <button class="tool-btn bulk-a" onclick="bulkMark('r',false,event)">rest ✗Absent</button>
+          </div>
+        </div>
+        <div class="fcol-body" id="recall-col"></div>
+      </div>
+      <div class="fcol" id="fcol-p" onclick="setActive('p')">
+        <div class="fcol-head">
+          <div class="fcol-title">Answer facts <span class="fcol-count" id="prec-count"></span></div>
+          <div class="fcol-sub">Is each answer fact present in the <b>reference answer</b>?</div>
+          <div class="col-tools">
+            <input class="col-filter" id="filter-p" placeholder="filter…" oninput="applyColFilter('p')">
+            <button class="tool-btn" id="unmarked-p" onclick="toggleUnmarked('p',event)">unmarked only</button>
+            <button class="tool-btn bulk-p" onclick="bulkMark('p',true,event)">rest ✓Present</button>
+            <button class="tool-btn bulk-a" onclick="bulkMark('p',false,event)">rest ✗Absent</button>
+          </div>
+        </div>
+        <div class="fcol-body" id="prec-col"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Optional note modal -->
+<div id="modal-overlay">
+  <div id="modal">
+    <div id="modal-top">
+      <h3>Add a note (optional)</h3>
+      <div id="modal-fact"></div>
+      <div id="modal-choice-row">You marked this fact:
+        <span class="modal-choice" id="modal-choice"></span>
+      </div>
+      <label>Notes (optional):</label>
+      <textarea id="modal-expl" placeholder="Any reasoning you want to record (optional)…"></textarea>
+    </div>
+    <div id="modal-actions">
+      <button class="btn" onclick="cancelModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="confirmModal()">Save note</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// Blinded: each record has ONLY {record_id, question_id, source_name, model, inference_type,
+// question, reference_answer, response, recall_items:[{idx,fact}], precision_items:[{idx,fact}]}.
+// Identity is embedded (carried into the export) but never displayed; no LLM consensus/votes.
+const PRELOADED_DATA = [];
+
+let records = [], annotations = {}, completed = new Set(), current = 0, storageKey = "";
+
+// per-render state for the current card
+let itemMap = {};       // sid -> item {idx, fact}
+let cardMarks = {};     // sid -> {entailed: bool|null, explanation: string|null}
+let colSids = { r: [], p: [] };   // render-order sids per column
+let activeDir = "r";    // column receiving keyboard marks
+let cursorSid = null;   // highlighted row for keyboard marking
+let filters = { r: "", p: "" };
+let unmarkedOnly = { r: false, p: false };
+
+// find state
+let highlightables = [];  // [{el, raw}]
+let matchIdx = -1;
+
+// ── localStorage ──────────────────────────────────────────────────────────────
+const sk = d => "fa_blind__" + d.length + "__" + (d[0]?.record_id ?? "");
+function persist() {
+  if (!storageKey) return;
+  try { localStorage.setItem(storageKey, JSON.stringify({ annotations, completed:[...completed], current })); } catch(e) {}
+}
+function restore(data) {
+  const raw = localStorage.getItem(sk(data));
+  if (!raw) return false;
+  try { const s=JSON.parse(raw); annotations=s.annotations||{}; completed=new Set(s.completed||[]); current=s.current||0; return true; }
+  catch(e) { return false; }
+}
+function clearAll() {
+  if (storageKey) localStorage.removeItem(storageKey);
+  annotations={}; completed=new Set(); current=0;
+  document.querySelectorAll(".nav-ck").forEach(e=>e.textContent="");
+  document.querySelectorAll(".nav-item").forEach(e=>e.classList.remove("done"));
+  updatePb(); renderCard(0);
+}
+
+// ── Boot ──────────────────────────────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded", () => { if (PRELOADED_DATA?.length) startApp(PRELOADED_DATA); });
+window.addEventListener("beforeunload", e => { save(); persist(); if (completed.size) { e.preventDefault(); e.returnValue="Export before leaving."; } });
+
+document.addEventListener("keydown", e => {
+  const findEl = document.getElementById("find-input");
+  // Ctrl/Cmd+F → focus our find box instead of the browser's.
+  if ((e.metaKey || e.ctrlKey) && (e.key === "f" || e.key === "F")) {
+    e.preventDefault(); findEl.focus(); findEl.select(); return;
+  }
+  if (document.getElementById("modal-overlay").classList.contains("show")) {
+    if (e.key === "Escape") cancelModal();
+    return;
+  }
+  if (document.activeElement === findEl) return;                 // handled by findKey
+  if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.tagName === "INPUT") return;
+
+  switch (e.key) {
+    case "ArrowRight": case "l": saveAndNext(); break;
+    case "ArrowLeft":  case "h": navigate(-1); break;
+    case "ArrowDown":  case "j": e.preventDefault(); moveCursor(1); break;
+    case "ArrowUp":    case "k": e.preventDefault(); moveCursor(-1); break;
+    case "p": case "P": e.preventDefault(); markCursor(true); break;
+    case "a": case "A": e.preventDefault(); markCursor(false); break;
+    case "s": case "S": e.preventDefault(); skipCard(); break;
+    case "Tab": e.preventDefault(); setActive(activeDir === "r" ? "p" : "r"); moveCursor(0); break;
+    case "Escape": if (document.getElementById("find-input").value) clearFind(); break;
+  }
+});
+
+function loadFile() {
+  const f=document.getElementById("file-json").files[0], err=document.getElementById("load-err");
+  err.textContent="";
+  if (!f) { err.textContent="Please select a JSON file."; return; }
+  const r=new FileReader();
+  r.onload=ev=>{ try { const d=JSON.parse(ev.target.result); if (!Array.isArray(d)||!d.length) throw 0; setTimeout(()=>startApp(d),80); } catch(e) { err.textContent="Invalid JSON."; } };
+  r.readAsText(f);
+}
+
+function startApp(data) {
+  records=data; storageKey=sk(data);
+  const restored=restore(data);
+  document.getElementById("load-screen").style.display="none";
+  document.getElementById("app").style.display="flex";
+  buildNav();
+  if (restored && completed.size) {
+    showBanner();
+    completed.forEach(i=>{ const c=document.getElementById("ck"+i); if(c)c.textContent="✓"; const n=document.getElementById("n"+i); if(n)n.classList.add("done"); });
+  }
+  renderCard(current);
+}
+
+function showBanner() {
+  if (document.getElementById("restore-banner")) return;
+  const b=document.createElement("div");
+  b.id="restore-banner";
+  b.style.cssText="background:#1e40af;color:#fff;font-size:12px;padding:7px 14px;display:flex;align-items:center;gap:8px;margin:10px 22px 0;border-radius:8px";
+  b.innerHTML=`<span>↩ Session restored — ${completed.size} completed.</span>
+    <button onclick="clearAll()" style="margin-left:auto;background:rgba(255,255,255,.2);border:none;color:#fff;padding:2px 8px;border-radius:3px;cursor:pointer;font-size:11px">Reset</button>
+    <button onclick="this.parentElement.remove()" style="background:none;border:none;color:#fff;cursor:pointer;font-size:15px;line-height:1">×</button>`;
+  document.getElementById("main").prepend(b);
+}
+
+function buildNav() {
+  const list=document.getElementById("nav-list");
+  list.innerHTML="";
+  records.forEach((r,i)=>{
+    const d=document.createElement("div");
+    d.className="nav-item"; d.id="n"+i;
+    d.onclick=()=>{ save(); persist(); renderCard(i); };
+    d.innerHTML=`<span style="min-width:16px;font-size:10px;color:var(--muted)">${i+1}</span>
+      <span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${trunc(r.question||r.record_id,22)}</span>
+      <span class="nav-ck" id="ck${i}"></span>`;
+    list.appendChild(d);
+  });
+  updatePb();
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderCard(idx) {
+  current=idx;
+  const r=records[idx];
+  itemMap = {}; cardMarks = {}; colSids = { r: [], p: [] };
+  cursorSid = null; activeDir = "r"; matchIdx = -1;
+  highlightables = [];
+
+  document.getElementById("q-text").textContent = r.question || r.record_id;
+
+  // Pinned answers (registered for find-highlight).
+  const refEl = document.getElementById("ref-answer");
+  const candEl = document.getElementById("cand-answer");
+  refEl.textContent  = (r.reference_answer||"").trim() || "(no reference answer)";
+  candEl.textContent = (r.response||"").trim() || "(no answer text)";
+  highlightables.push({ el: refEl,  raw: refEl.textContent });
+  highlightables.push({ el: candEl, raw: candEl.textContent });
+
+  const saved = annotations[rk(r)];
+  renderCol("recall-col", r.recall_items    || [], "r", saved, idx);
+  renderCol("prec-col",   r.precision_items || [], "p", saved, idx);
+  updateCounts();
+  applyColFilter("r"); applyColFilter("p");
+  setActive("r");
+  moveCursor(0);                 // place cursor on first visible row
+  onFind();                      // re-apply any active find query
+
+  document.querySelectorAll(".nav-item").forEach(el=>el.classList.remove("active"));
+  const nav=document.getElementById("n"+idx);
+  if (nav) { nav.classList.add("active"); nav.scrollIntoView({block:"nearest"}); }
+  document.getElementById("skip-note").textContent="";
+  updatePb();
+}
+
+function renderCol(containerId, items, dir, saved, ci) {
+  const box = document.getElementById(containerId);
+  box.innerHTML = "";
+  colSids[dir] = [];
+  if (!items.length) { box.innerHTML = `<div class="empty">No facts.</div>`; return; }
+  const savedKey = dir === "r" ? "recall_items" : "precision_items";
+  items.forEach((item, ii) => {
+    const sid = `${dir}-${ci}-${ii}`;
+    colSids[dir].push(sid);
+    const savedItem = saved ? saved[savedKey]?.find(s=>s.idx===item.idx) : null;
+    const entailed    = savedItem ? savedItem.entailed : null;
+    const explanation = savedItem?.note || savedItem?.explanation || null;
+    itemMap[sid]   = item;
+    cardMarks[sid] = { entailed, explanation };
+
+    const row = document.createElement("div");
+    row.className = "fact-row" + (entailed===null ? " unset" : "");
+    row.id = "row-"+sid;
+    row.onclick = (ev) => { if (ev.target.closest(".seg")) return; setActive(dir); setCursor(sid); };
+    row.innerHTML = `
+      <div class="fact-body">
+        <span class="fact-num">${item.idx}.</span><span class="fact-txt" id="txt-${sid}">${e(item.fact)}</span>
+        <span class="expl-tag${explanation?" has-note":""}" id="tag-${sid}" onclick="event.stopPropagation();openNote('${sid}')">✎&nbsp;${explanation?"edit note":"note"}</span>
+      </div>
+      <div class="seg" id="seg-${sid}">
+        <button class="seg-btn seg-present${entailed===true ?" on":""}" onclick="onMark('${sid}',true)">Present</button>
+        <button class="seg-btn seg-absent${entailed===false?" on":""}" onclick="onMark('${sid}',false)">Absent</button>
+      </div>`;
+    box.appendChild(row);
+    // Register fact text for find-highlight.
+    highlightables.push({ el: row.querySelector(".fact-txt"), raw: item.fact });
+  });
+}
+
+// ── Marking ────────────────────────────────────────────────────────────────────
+function onMark(sid, present) { if (itemMap[sid]) commitMark(sid, present, cardMarks[sid]?.explanation || null); }
+
+function _applyMark(sid, present, explanation) {
+  cardMarks[sid] = { entailed: present, explanation: explanation || null };
+  const seg = document.getElementById("seg-"+sid);
+  if (seg) {
+    seg.querySelector(".seg-present").classList.toggle("on", present===true);
+    seg.querySelector(".seg-absent").classList.toggle("on", present===false);
+  }
+  const row = document.getElementById("row-"+sid);
+  if (row) row.classList.remove("unset");
+  refreshTag(sid);
+}
+
+function commitMark(sid, present, explanation) {
+  _applyMark(sid, present, explanation);
+  updateCounts(); save(); persist();
+  // Re-hide if "unmarked only" is active for this column.
+  const dir = sid[0];
+  if (unmarkedOnly[dir]) applyColFilter(dir);
+}
+
+function refreshTag(sid) {
+  const tag = document.getElementById("tag-"+sid);
+  if (!tag) return;
+  const has = !!(cardMarks[sid]?.explanation);
+  tag.classList.toggle("has-note", has);
+  tag.innerHTML = `✎&nbsp;${has ? "edit note" : "note"}`;
+}
+
+// ── Keyboard cursor ─────────────────────────────────────────────────────────────
+function setActive(dir) {
+  activeDir = dir;
+  document.getElementById("fcol-r").classList.toggle("active", dir==="r");
+  document.getElementById("fcol-p").classList.toggle("active", dir==="p");
+}
+
+function visibleSids(dir) {
+  return colSids[dir].filter(sid => {
+    const row = document.getElementById("row-"+sid);
+    return row && row.style.display !== "none";
+  });
+}
+
+function setCursor(sid) {
+  document.querySelectorAll(".fact-row.cursor").forEach(r=>r.classList.remove("cursor"));
+  cursorSid = sid;
+  if (!sid) return;
+  const row = document.getElementById("row-"+sid);
+  if (row) { row.classList.add("cursor"); row.scrollIntoView({ block: "nearest" }); }
+}
+
+function moveCursor(delta) {
+  const vis = visibleSids(activeDir);
+  if (!vis.length) { setCursor(null); return; }
+  let i = vis.indexOf(cursorSid);
+  if (i === -1) i = delta >= 0 ? 0 : vis.length - 1;
+  else i = Math.min(vis.length - 1, Math.max(0, i + delta));
+  setCursor(vis[i]);
+}
+
+function markCursor(present) {
+  if (!cursorSid || itemMap[cursorSid] === undefined) { moveCursor(0); return; }
+  const dir = activeDir;
+  commitMark(cursorSid, present, cardMarks[cursorSid]?.explanation || null);
+  // Advance to the next still-unmarked visible row in this column; else next visible.
+  const vis = visibleSids(dir);
+  const start = vis.indexOf(cursorSid);
+  let next = null;
+  for (let k = start + 1; k < vis.length; k++) { if (cardMarks[vis[k]].entailed === null) { next = vis[k]; break; } }
+  if (!next) for (let k = start + 1; k < vis.length; k++) { next = vis[k]; break; }
+  setCursor(next || (vis[start] ?? null));
+}
+
+// ── Column tools ────────────────────────────────────────────────────────────────
+function applyColFilter(dir) {
+  filters[dir] = (document.getElementById("filter-"+dir)?.value || "").toLowerCase().trim();
+  colSids[dir].forEach(sid => {
+    const row = document.getElementById("row-"+sid);
+    if (!row) return;
+    const textOk = !filters[dir] || (itemMap[sid].fact || "").toLowerCase().includes(filters[dir]);
+    const markOk = !unmarkedOnly[dir] || cardMarks[sid].entailed === null;
+    row.style.display = (textOk && markOk) ? "" : "none";
+  });
+  if (cursorSid && cursorSid[0] === dir) {
+    const row = document.getElementById("row-"+cursorSid);
+    if (row && row.style.display === "none") moveCursor(0);
+  }
+}
+
+function toggleUnmarked(dir, ev) {
+  if (ev) ev.stopPropagation();
+  unmarkedOnly[dir] = !unmarkedOnly[dir];
+  document.getElementById("unmarked-"+dir).classList.toggle("on", unmarkedOnly[dir]);
+  applyColFilter(dir);
+}
+
+function bulkMark(dir, present, ev) {
+  if (ev) ev.stopPropagation();
+  const targets = colSids[dir].filter(sid => cardMarks[sid].entailed === null);
+  if (!targets.length) { document.getElementById("skip-note").textContent = "No unmarked facts left in that column."; return; }
+  const label = present ? "Present" : "Absent";
+  if (!confirm(`Mark all ${targets.length} unmarked fact(s) in this column as ${label}?`)) return;
+  targets.forEach(sid => _applyMark(sid, present, cardMarks[sid]?.explanation || null));
+  updateCounts(); save(); persist();
+  applyColFilter(dir);
+}
+
+// ── Optional-note modal ───────────────────────────────────────────────────────
+let modalSid = null;
+function openNote(sid) {
+  modalSid = sid;
+  const item = itemMap[sid];
+  const mark = cardMarks[sid] || { entailed: null, explanation: null };
+  document.getElementById("modal-fact").textContent = item.fact;
+  const ch = document.getElementById("modal-choice");
+  if (mark.entailed === true)  { ch.textContent = "Present"; ch.className = "modal-choice present"; }
+  else if (mark.entailed === false) { ch.textContent = "Absent"; ch.className = "modal-choice absent"; }
+  else { ch.textContent = "not marked"; ch.className = "modal-choice unset"; }
+  document.getElementById("modal-expl").value = mark.explanation || "";
+  document.getElementById("modal-overlay").classList.add("show");
+  setTimeout(()=>document.getElementById("modal-expl").focus(), 40);
+}
+function confirmModal() {
+  const expl = document.getElementById("modal-expl").value.trim();
+  const mark = cardMarks[modalSid] || { entailed: null };
+  cardMarks[modalSid] = { entailed: mark.entailed ?? null, explanation: expl || null };
+  refreshTag(modalSid);
+  save(); persist();
+  closeModal();
+}
+function cancelModal() { closeModal(); }
+function closeModal() { document.getElementById("modal-overlay").classList.remove("show"); modalSid = null; }
+
+// ── Find (fuzzy, word-level) ─────────────────────────────────────────────────────
+function toggleSource() {
+  const p = document.getElementById("source-pane");
+  p.classList.toggle("collapsed");
+  document.getElementById("find-hint").textContent = p.classList.contains("collapsed") ? "▸ show answers" : "▾ hide answers";
+}
+function findKey(ev) {
+  if (ev.key === "Enter") { ev.preventDefault(); stepMatch(ev.shiftKey ? -1 : 1); }
+  else if (ev.key === "Escape") { ev.preventDefault(); clearFind(); }
+}
+function clearFind() { const i=document.getElementById("find-input"); i.value=""; i.blur(); onFind(); }
+
+function onFind() {
+  const q = document.getElementById("find-input").value.trim();
+  const terms = q.toLowerCase().split(/\s+/).filter(t => t.length >= 2);
+  highlightables.forEach(({el, raw}) => { el.innerHTML = highlightHTML(raw, terms); });
+  matchIdx = -1;
+  const n = allMarks().length;
+  document.getElementById("find-count").textContent = q ? (n ? `0 / ${n}` : "no matches") : "";
+  if (n) stepMatch(1);
+}
+
+function allMarks() {
+  return Array.from(document.querySelectorAll("#main mark")).filter(m => m.offsetParent !== null);
+}
+
+function stepMatch(delta) {
+  const marks = allMarks();
+  if (!marks.length) { document.getElementById("find-count").textContent = "no matches"; return; }
+  marks.forEach(m => m.classList.remove("cur"));
+  matchIdx = (matchIdx + delta + marks.length) % marks.length;
+  const cur = marks[matchIdx];
+  cur.classList.add("cur");
+  cur.scrollIntoView({ block: "center", behavior: "smooth" });
+  document.getElementById("find-count").textContent = `${matchIdx + 1} / ${marks.length}`;
+}
+
+function highlightHTML(raw, terms) {
+  if (!terms.length) return e(raw);
+  let out = "", last = 0, m;
+  const re = /[A-Za-z0-9]+/g;
+  while ((m = re.exec(raw))) {
+    out += e(raw.slice(last, m.index));
+    const word = m[0];
+    out += terms.some(t => fuzzyWord(word.toLowerCase(), t)) ? `<mark>${e(word)}</mark>` : e(word);
+    last = m.index + word.length;
+  }
+  return out + e(raw.slice(last));
+}
+
+function fuzzyWord(word, term) {
+  if (word.includes(term) || term.includes(word)) return true;        // prefix / substring
+  const thr = term.length <= 3 ? 0 : term.length <= 6 ? 1 : 2;        // typo tolerance by length
+  return thr > 0 && boundedLev(word, term, thr) <= thr;
+}
+
+// Levenshtein with early exit once the best possible exceeds max.
+function boundedLev(a, b, max) {
+  if (Math.abs(a.length - b.length) > max) return max + 1;
+  let prev = Array.from({length: b.length + 1}, (_, j) => j);
+  for (let i = 1; i <= a.length; i++) {
+    const cur = [i]; let rowMin = i;
+    for (let j = 1; j <= b.length; j++) {
+      const cost = a[i-1] === b[j-1] ? 0 : 1;
+      cur[j] = Math.min(prev[j] + 1, cur[j-1] + 1, prev[j-1] + cost);
+      rowMin = Math.min(rowMin, cur[j]);
+    }
+    if (rowMin > max) return max + 1;
+    prev = cur;
+  }
+  return prev[b.length];
+}
+
+// ── Counts / completion ─────────────────────────────────────────────────────────
+function updateCounts() {
+  const tally = dir => {
+    let done=0, total=0;
+    colSids[dir].forEach(sid => { total++; if (cardMarks[sid].entailed !== null) done++; });
+    return [done, total];
+  };
+  const [rd,rt] = tally("r"), [pd,pt] = tally("p");
+  document.getElementById("rec-count").textContent  = `${rd}/${rt}`;
+  document.getElementById("prec-count").textContent = `${pd}/${pt}`;
+}
+function isCardComplete() {
+  const vals = Object.values(cardMarks);
+  return vals.length>0 && vals.every(m => m.entailed !== null);
+}
+
+// ── Save / navigate ───────────────────────────────────────────────────────────
+function rk(r) { return r.record_id; }
+
+function collectCol(dir, items, ci) {
+  return (items||[]).map((item,ii)=>{
+    const sid = `${dir}-${ci}-${ii}`;
+    const m = cardMarks[sid] || { entailed:null, explanation:null };
+    return { idx: item.idx, fact: item.fact, entailed: m.entailed, note: m.explanation || null };
+  });
+}
+
+function save() {
+  if (!records.length) return;
+  const r = records[current];
+  annotations[rk(r)] = {
+    record_id: r.record_id,
+    question_id: r.question_id ?? "",
+    source_name: r.source_name ?? "",
+    model: r.model ?? "",
+    inference_type: r.inference_type ?? "",
+    recall_items:    collectCol("r", r.recall_items,    current),
+    precision_items: collectCol("p", r.precision_items, current),
+    complete: isCardComplete(),
+  };
+}
+
+function markDone(idx) {
+  completed.add(idx);
+  const c=document.getElementById("ck"+idx);  if(c) c.textContent="✓";
+  const n=document.getElementById("n"+idx);   if(n) n.classList.add("done");
+}
+
+function saveAndNext() {
+  save();
+  if (isCardComplete()) markDone(current);
+  else document.getElementById("skip-note").textContent = "Some facts are still unmarked.";
+  persist();
+  if (current<records.length-1) renderCard(current+1);
+  else if (isCardComplete()) document.getElementById("skip-note").textContent="All done!";
+  updatePb();
+}
+function skipCard()  { save(); persist(); if (current<records.length-1) renderCard(current+1); }
+function navigate(d) { save(); persist(); const n=current+d; if(n>=0&&n<records.length) renderCard(n); updatePb(); }
+function updatePb() {
+  const n=records.length, done=completed.size;
+  document.getElementById("pb-label").textContent=`${done} / ${n}`;
+  document.getElementById("pb").style.width=n?(done/n*100)+"%":"0%";
+}
+
+function exportAnnotations() {
+  // Flush the current card: include it if every fact is marked, even without Save & Next.
+  save();
+  if (isCardComplete()) markDone(current);
+  persist(); updatePb();
+  const out=[...completed].sort((a,b)=>a-b).map(i=>annotations[rk(records[i])]).filter(Boolean);
+  if (!out.length) { alert("No completed annotations yet."); return; }
+  const ts=new Date().toISOString().replace(/[:.]/g,"-").slice(0,19);
+  const blob=new Blob([JSON.stringify(out,null,2)],{type:"application/json"});
+  const a=document.createElement("a"); a.href=URL.createObjectURL(blob);
+  a.download=`fact_annotations_${ts}.json`; a.click();
+}
+
+function e(s)    { return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;"); }
+function trunc(s,n) { return s&&s.length>n?s.slice(0,n)+"…":(s||"—"); }
+</script>
+</body>
+</html>

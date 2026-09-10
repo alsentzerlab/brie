@@ -1,0 +1,596 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ELO Annotation (blinded)</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg: #f5f5f5;
+    --card: #ffffff;
+    --border: #d0d0d0;
+    --border-strong: #c4c4c4;
+    --muted: #777;
+    --accent: #2563eb;
+    --accent-light: #eff6ff;
+    --win-a: #1d4ed8;
+    --win-b: #9d174d;
+    --win-tie: #555;
+    --radius: 8px;
+    --shadow: 0 1px 4px rgba(0,0,0,0.08);
+  }
+
+  body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: var(--bg); color: #111; font-size: 14px; line-height: 1.5; }
+
+  /* ── Layout ── */
+  #app { display: flex; height: 100vh; overflow: hidden; }
+  #sidebar { width: 220px; flex-shrink: 0; background: var(--card); border-right: 1px solid var(--border);
+    display: flex; flex-direction: column; overflow: hidden; }
+  #main { flex: 1; overflow-y: auto; padding: 20px; }
+
+  /* ── Sidebar ── */
+  #sidebar-header { padding: 14px 12px 10px; border-bottom: 1px solid var(--border); }
+  #sidebar-header h2 { font-size: 13px; font-weight: 600; color: var(--muted); letter-spacing: .03em; text-transform: uppercase; }
+  #progress-bar-wrap { margin-top: 6px; height: 5px; background: var(--border); border-radius: 99px; overflow: hidden; }
+  #progress-bar { height: 100%; background: var(--accent); width: 0%; transition: width .3s; }
+  #progress-label { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  #nav-list { flex: 1; overflow-y: auto; padding: 6px 0; }
+  .nav-item { display: flex; align-items: center; gap: 6px; padding: 5px 12px; cursor: pointer;
+    font-size: 13px; border-left: 3px solid transparent; color: var(--muted); }
+  .nav-item:hover { background: #f0f4ff; }
+  .nav-item.active { border-left-color: var(--accent); color: #111; background: var(--accent-light); }
+  .nav-item.done { color: #111; }
+  .nav-check { font-size: 11px; color: #16a34a; font-weight: 700; margin-left: auto; }
+  #kbd-help { padding: 10px 12px; border-top: 1px solid var(--border); font-size: 10.5px; color: var(--muted); line-height: 1.8; }
+  #kbd-help b { color: #555; }
+  #kbd-help kbd { background: #eef1f5; border: 1px solid var(--border); border-radius: 4px; padding: 0 4px;
+    font-size: 10px; font-family: ui-monospace, monospace; color: #444; }
+  .dim-row.cursor { background: var(--accent-light); box-shadow: inset 0 0 0 2px var(--accent); border-radius: 8px; }
+
+  /* ── Cards ── */
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    box-shadow: var(--shadow); padding: 16px; margin-bottom: 16px; }
+  .card-title { font-size: 11px; font-weight: 700; text-transform: uppercase; letter-spacing: .06em;
+    color: var(--muted); margin-bottom: 8px; }
+
+  /* ── Question ── */
+  #q-natural { font-size: 16px; font-weight: 600; line-height: 1.4; }
+  #q-specified { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  #q-specified span { font-style: italic; }
+
+  /* ── Reference answer ── */
+  #ref-answer { white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
+
+  /* ── Responses ── */
+  #responses-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+  .response-box { border: 1px solid var(--border); border-radius: var(--radius); overflow: hidden; }
+  .response-label { padding: 6px 12px; font-size: 11px; font-weight: 700; letter-spacing: .05em;
+    text-transform: uppercase; background: #f8f8f8; border-bottom: 1px solid var(--border); }
+  .response-label.a { color: var(--win-a); }
+  .response-label.b { color: var(--win-b); }
+  .response-text { padding: 10px 12px; max-height: 320px; overflow-y: auto;
+    white-space: pre-wrap; font-size: 13px; line-height: 1.6; }
+
+  /* ── Judgments ── */
+  .dim-row { padding: 12px 0; border-bottom: 1px solid #f0f0f0; }
+  .dim-row:last-child { border-bottom: none; }
+  .dim-header { display: flex; align-items: center; gap: 12px; flex-wrap: wrap; position: relative; }
+  .dim-name { font-weight: 600; font-size: 13px; min-width: 110px; cursor: help;
+    border-bottom: 1px dotted #aaa; display: inline-block; }
+  .dim-name[title]:hover::after {
+    content: attr(title);
+    position: absolute; left: 0; top: 100%; margin-top: 4px;
+    background: #1e293b; color: #f8fafc; font-size: 12px; font-weight: 400;
+    padding: 7px 10px; border-radius: 6px; width: 320px; line-height: 1.5;
+    z-index: 100; white-space: normal; pointer-events: none; box-shadow: 0 2px 8px rgba(0,0,0,.2);
+  }
+
+  /* Segmented A / Tie / B control */
+  .seg { display: flex; border: 1px solid var(--border-strong); border-radius: 7px; overflow: hidden; }
+  .seg-btn { padding: 6px 16px; font-size: 12px; font-weight: 700; cursor: pointer;
+    border: none; background: #fff; color: var(--muted); min-width: 56px; letter-spacing: .03em; }
+  .seg-btn + .seg-btn { border-left: 1px solid var(--border-strong); }
+  .seg-btn:hover { background: #f4f6f8; }
+  .seg-btn.on[data-w="A"]   { background: var(--win-a);   color: #fff; }
+  .seg-btn.on[data-w="B"]   { background: var(--win-b);   color: #fff; }
+  .seg-btn.on[data-w="TIE"] { background: var(--win-tie); color: #fff; }
+
+  .note-toggle { background: none; border: none; color: var(--accent); font-size: 12px; cursor: pointer;
+    margin-left: auto; font-weight: 500; }
+  .note-toggle:hover { text-decoration: underline; }
+  .note-toggle.has-note { color: #b45309; }
+  .dim-note { width: 100%; margin-top: 8px; padding: 7px 9px; border: 1px solid var(--border-strong);
+    border-radius: 6px; font-size: 12px; font-family: inherit; resize: vertical; min-height: 48px; }
+  .dim-note:focus { outline: none; border-color: var(--accent); }
+  .dim-note::placeholder { color: #bbb; }
+
+  /* ── Navigation bar ── */
+  #nav-bar { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+  #nav-bar h1 { font-size: 16px; font-weight: 700; margin-right: auto; }
+  .btn { padding: 7px 14px; border-radius: 6px; font-size: 13px; font-weight: 500;
+    cursor: pointer; border: 1px solid var(--border); background: var(--card); color: #111;
+    transition: background .15s; }
+  .btn:hover { background: #f0f0f0; }
+  .btn-primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn-primary:hover { background: #1d4ed8; }
+  .btn-success { background: #16a34a; color: #fff; border-color: #16a34a; }
+  .btn-success:hover { background: #15803d; }
+
+  /* ── Load screen ── */
+  #load-screen { display: flex; align-items: center; justify-content: center;
+    min-height: 100vh; background: var(--bg); }
+  #load-card { background: var(--card); border: 1px solid var(--border); border-radius: var(--radius);
+    padding: 32px 40px; max-width: 520px; width: 100%; box-shadow: var(--shadow); }
+  #load-card h1 { font-size: 20px; font-weight: 700; margin-bottom: 6px; }
+  #load-card p { color: var(--muted); font-size: 13px; margin-bottom: 20px; }
+  .file-group { margin-bottom: 14px; }
+  .file-group label { display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px; color: #333; }
+  .file-group input[type=file] { display: block; font-size: 13px; width: 100%; }
+  #load-error { color: #dc2626; font-size: 12px; margin-top: 8px; }
+  #load-info { font-size: 12px; color: var(--muted); margin-top: 8px; }
+
+  /* ── Misc ── */
+  #skip-notice { font-size: 12px; color: var(--muted); margin-left: 4px; }
+</style>
+</head>
+<body>
+
+<!-- Load screen (shown when no pre-embedded data) -->
+<div id="load-screen">
+  <div id="load-card">
+    <h1>ELO Annotation (blinded)</h1>
+    <p>Load a blinded sample JSON generated by <code>sample_elo_pairs.py</code>.</p>
+    <div class="file-group">
+      <label>Sample JSON (from sample_elo_pairs.py)</label>
+      <input type="file" id="file-json" accept=".json">
+    </div>
+    <div id="load-error"></div>
+    <div id="load-info"></div>
+    <br>
+    <button class="btn btn-primary" onclick="loadFiles()">Load &amp; Start</button>
+  </div>
+</div>
+
+<!-- Main annotation app (hidden until data loaded) -->
+<div id="app" style="display:none">
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <h2>Progress</h2>
+      <div id="progress-bar-wrap"><div id="progress-bar"></div></div>
+      <div id="progress-label">0 / 0 reviewed</div>
+    </div>
+    <div id="nav-list"></div>
+    <div id="kbd-help">
+      <b>Keyboard</b><br>
+      <kbd>a</kbd> A · <kbd>t</kbd> Tie · <kbd>b</kbd> B<br>
+      <kbd>j</kbd>/<kbd>k</kbd> or <kbd>↑</kbd>/<kbd>↓</kbd> move dimension<br>
+      <kbd>→</kbd> save &amp; next · <kbd>←</kbd> prev<br>
+      <kbd>s</kbd> skip
+    </div>
+  </div>
+
+  <div id="main">
+    <div id="nav-bar">
+      <h1>ELO Annotation</h1>
+      <span id="skip-notice"></span>
+      <button class="btn" id="btn-prev" onclick="navigate(-1)">← Prev</button>
+      <button class="btn" id="btn-skip" onclick="skipCard()">Skip</button>
+      <button class="btn btn-primary" id="btn-save" onclick="saveAndNext()">Save &amp; Next →</button>
+      <button class="btn btn-success" id="btn-export" onclick="exportAnnotations()">Export JSON</button>
+    </div>
+
+    <!-- Question -->
+    <div class="card" id="card-question">
+      <div class="card-title">Question</div>
+      <div id="q-natural"></div>
+      <div id="q-specified"><span></span></div>
+    </div>
+
+    <!-- Reference answer -->
+    <div class="card">
+      <div class="card-title">Reference Answer</div>
+      <div id="ref-answer"></div>
+    </div>
+
+    <!-- Responses -->
+    <div class="card">
+      <div class="card-title">Responses</div>
+      <div id="responses-grid">
+        <div class="response-box">
+          <div class="response-label a">Response A</div>
+          <div class="response-text" id="resp-a"></div>
+        </div>
+        <div class="response-box">
+          <div class="response-label b">Response B</div>
+          <div class="response-text" id="resp-b"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Judgments -->
+    <div class="card" id="card-judgments">
+      <div class="card-title">Your Judgment <span style="font-weight:400;color:var(--muted);text-transform:none;letter-spacing:0">— pick the better response on each dimension, or Tie</span></div>
+      <div id="dims-container"></div>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Pre-embedded data (injected by sample_elo_pairs.py) ──────────────────────
+// Blinded: each record has ONLY {record_id, natural_query, question,
+// reference_answer, response_a, response_b}. No model names, judge, or LLM verdicts.
+const PRELOADED_DATA = [];
+
+const DIMS = ["completeness", "relevancy", "concision"];
+const DIM_DEFS = {
+  completeness: "Which response includes more of the important clinical details present in the reference answer? Prefer the response that omits fewer key facts.",
+  relevancy:    "Which response stays closer to what the question asks and the reference answer covers, without introducing unnecessary or tangential details?",
+  concision:    "Which response communicates the necessary information more concisely, without excessive verbosity or redundant phrasing?",
+};
+
+// ── State ────────────────────────────────────────────────────────────────────
+let records = [];
+let annotations = {};
+let completed = new Set();
+let current = 0;
+let storageKey = "";
+let cursorDim = null;   // dimension highlighted for left-hand winner keys (a/t/b)
+
+// ── localStorage persistence ─────────────────────────────────────────────────
+function _storageKey(data) {
+  return "elo_blind__" + data.length + "__" + (data[0]?.record_id ?? "");
+}
+
+function persistState() {
+  if (!storageKey) return;
+  try {
+    localStorage.setItem(storageKey, JSON.stringify({
+      annotations, completed: [...completed], current,
+    }));
+  } catch(e) { /* storage full — ignore */ }
+}
+
+function restoreState(data) {
+  const raw = localStorage.getItem(_storageKey(data));
+  if (!raw) return false;
+  try {
+    const saved = JSON.parse(raw);
+    annotations = saved.annotations || {};
+    completed = new Set(saved.completed || []);
+    current = saved.current || 0;
+    return true;
+  } catch(e) { return false; }
+}
+
+function clearStorage() {
+  if (storageKey) localStorage.removeItem(storageKey);
+  annotations = {};
+  completed = new Set();
+  current = 0;
+  document.querySelectorAll(".nav-check").forEach(el => el.textContent = "");
+  document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("done"));
+  updateProgress();
+  renderCard(0);
+}
+
+// ── Boot ─────────────────────────────────────────────────────────────────────
+window.addEventListener("DOMContentLoaded", () => {
+  if (PRELOADED_DATA && PRELOADED_DATA.length > 0) startApp(PRELOADED_DATA);
+});
+
+window.addEventListener("beforeunload", e => {
+  persistState();
+  if (completed.size > 0) {
+    e.preventDefault();
+    e.returnValue = "You have completed annotations. Export before leaving.";
+  }
+});
+
+document.addEventListener("keydown", e => {
+  if (document.activeElement.tagName === "TEXTAREA" || document.activeElement.tagName === "INPUT") return;
+  switch (e.key) {
+    case "ArrowRight": case "l": saveAndNext(); break;
+    case "ArrowLeft":  case "h": navigate(-1); break;
+    case "s": case "S": e.preventDefault(); skipCard(); break;
+    case "ArrowDown":  case "j": e.preventDefault(); moveDimCursor(1); break;
+    case "ArrowUp":    case "k": e.preventDefault(); moveDimCursor(-1); break;
+    // Left-hand winner keys: A / Tie / B, then advance to the next dimension.
+    case "a": case "A": e.preventDefault(); pickWinnerCursor("A"); break;
+    case "t": case "T": e.preventDefault(); pickWinnerCursor("TIE"); break;
+    case "b": case "B": e.preventDefault(); pickWinnerCursor("B"); break;
+  }
+});
+
+// ── File loading ─────────────────────────────────────────────────────────────
+function loadFiles() {
+  const jsonFile = document.getElementById("file-json").files[0];
+  const errEl = document.getElementById("load-error");
+  const infoEl = document.getElementById("load-info");
+  errEl.textContent = "";
+  infoEl.textContent = "";
+
+  if (!jsonFile) { errEl.textContent = "Please select a sample JSON file."; return; }
+
+  const reader = new FileReader();
+  reader.onload = ev => {
+    try {
+      const data = JSON.parse(ev.target.result);
+      if (!Array.isArray(data) || data.length === 0) throw new Error("JSON must be a non-empty array.");
+      infoEl.textContent = `Loaded ${data.length} records.`;
+      setTimeout(() => startApp(data), 200);
+    } catch(err) {
+      errEl.textContent = "Error: " + err.message;
+    }
+  };
+  reader.readAsText(jsonFile);
+}
+
+// ── App start ─────────────────────────────────────────────────────────────────
+function startApp(data) {
+  records = data;
+  storageKey = _storageKey(data);
+  const restored = restoreState(data);
+
+  document.getElementById("load-screen").style.display = "none";
+  document.getElementById("app").style.display = "flex";
+  buildNavList();
+
+  if (restored && completed.size > 0) {
+    showRestoreBanner();
+    completed.forEach(i => {
+      const c = document.getElementById("check-" + i);
+      if (c) c.textContent = "✓";
+      const n = document.getElementById("nav-" + i);
+      if (n) n.classList.add("done");
+    });
+  }
+
+  renderCard(current);
+}
+
+function showRestoreBanner() {
+  if (document.getElementById("restore-banner")) return;
+  const bar = document.createElement("div");
+  bar.id = "restore-banner";
+  bar.style.cssText = "background:#1e40af;color:#fff;font-size:13px;padding:8px 16px;display:flex;align-items:center;gap:12px;";
+  bar.innerHTML = `<span>↩ Session restored — ${completed.size} card(s) previously completed.</span>
+    <button onclick="clearStorage()" style="margin-left:auto;background:rgba(255,255,255,.2);border:none;color:#fff;padding:3px 10px;border-radius:4px;cursor:pointer;font-size:12px;">Reset</button>
+    <button onclick="this.parentElement.remove()" style="background:transparent;border:none;color:#fff;cursor:pointer;font-size:16px;line-height:1;">×</button>`;
+  document.getElementById("main").prepend(bar);
+}
+
+// ── Navigation list ───────────────────────────────────────────────────────────
+function buildNavList() {
+  const list = document.getElementById("nav-list");
+  list.innerHTML = "";
+  records.forEach((r, i) => {
+    const div = document.createElement("div");
+    div.className = "nav-item";
+    div.id = "nav-" + i;
+    div.onclick = () => { saveCurrentState(); renderCard(i); };
+    div.innerHTML = `<span style="min-width:18px;font-size:11px;color:var(--muted)">${i+1}</span>
+      <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:1">${truncate(r.natural_query || r.question || r.record_id, 24)}</span>
+      <span class="nav-check" id="check-${i}"></span>`;
+    list.appendChild(div);
+  });
+  updateProgress();
+}
+
+function truncate(s, n) {
+  if (!s) return "—";
+  return s.length > n ? s.slice(0, n) + "…" : s;
+}
+
+// ── Render card ───────────────────────────────────────────────────────────────
+function renderCard(idx) {
+  current = idx;
+  const r = records[idx];
+
+  // Question
+  document.getElementById("q-natural").textContent = r.natural_query || r.question || "";
+  const specEl = document.getElementById("q-specified");
+  if (r.question && r.natural_query && r.question !== r.natural_query) {
+    specEl.style.display = "";
+    specEl.querySelector("span").textContent = "Specified form: " + r.question;
+  } else {
+    specEl.style.display = "none";
+  }
+
+  // Reference answer
+  document.getElementById("ref-answer").textContent = r.reference_answer || "—";
+
+  // Responses
+  document.getElementById("resp-a").textContent = r.response_a || "(no response found)";
+  document.getElementById("resp-b").textContent = r.response_b || "(no response found)";
+
+  // Dims
+  const container = document.getElementById("dims-container");
+  container.innerHTML = "";
+  const saved = annotations[recordKey(r)];
+
+  DIMS.forEach(dim => {
+    const s = saved ? saved[dim] : null;
+    const winner = s ? (s.winner || "") : "";
+    const note = s ? (s.note || "") : "";
+
+    const row = document.createElement("div");
+    row.className = "dim-row";
+    row.id = "dim-" + dim;
+    row.innerHTML = `
+      <div class="dim-header">
+        <span class="dim-name" title="${escHtml(DIM_DEFS[dim])}">${capitalize(dim)}</span>
+        <div class="seg" id="seg-${dim}">
+          <button class="seg-btn ${winner==="A"?"on":""}"   data-w="A"   onclick="pickWinner('${dim}','A')">A</button>
+          <button class="seg-btn ${winner==="TIE"?"on":""}" data-w="TIE" onclick="pickWinner('${dim}','TIE')">Tie</button>
+          <button class="seg-btn ${winner==="B"?"on":""}"   data-w="B"   onclick="pickWinner('${dim}','B')">B</button>
+        </div>
+        <button class="note-toggle ${note?"has-note":""}" id="ntog-${dim}" onclick="toggleNote('${dim}')">✎ note</button>
+      </div>
+      <textarea class="dim-note" id="note-${dim}" placeholder="Optional: explain your choice…"
+        style="display:${note?"block":"none"}" oninput="onNoteInput('${dim}')">${escHtml(note)}</textarea>
+    `;
+    container.appendChild(row);
+  });
+
+  // Place the keyboard cursor on the first dimension without a winner (else the first).
+  const firstUnset = DIMS.find(d => !(saved && saved[d] && saved[d].winner));
+  setDimCursor(firstUnset || DIMS[0]);
+
+  // Update nav
+  document.querySelectorAll(".nav-item").forEach(el => el.classList.remove("active"));
+  const navItem = document.getElementById("nav-" + idx);
+  if (navItem) { navItem.classList.add("active"); navItem.scrollIntoView({ block: "nearest" }); }
+
+  document.getElementById("skip-notice").textContent = "";
+  updateProgress();
+}
+
+function pickWinner(dim, w) {
+  const seg = document.getElementById("seg-" + dim);
+  if (!seg) return;
+  seg.querySelectorAll(".seg-btn").forEach(b => b.classList.toggle("on", b.dataset.w === w));
+  saveCurrentState();
+  persistState();
+}
+
+// ── Keyboard dimension cursor (left-hand winner keys) ────────────────────────
+function setDimCursor(dim) {
+  document.querySelectorAll(".dim-row.cursor").forEach(r => r.classList.remove("cursor"));
+  cursorDim = dim;
+  const row = dim ? document.getElementById("dim-" + dim) : null;
+  if (row) { row.classList.add("cursor"); row.scrollIntoView({ block: "nearest" }); }
+}
+function moveDimCursor(delta) {
+  let i = DIMS.indexOf(cursorDim);
+  if (i === -1) i = delta >= 0 ? 0 : DIMS.length - 1;
+  else i = Math.min(DIMS.length - 1, Math.max(0, i + delta));
+  setDimCursor(DIMS[i]);
+}
+function pickWinnerCursor(w) {
+  if (!cursorDim) { moveDimCursor(0); return; }
+  pickWinner(cursorDim, w);
+  const i = DIMS.indexOf(cursorDim);
+  if (i < DIMS.length - 1) setDimCursor(DIMS[i + 1]);   // advance to the next dimension
+}
+
+function toggleNote(dim) {
+  const ta = document.getElementById("note-" + dim);
+  if (!ta) return;
+  ta.style.display = ta.style.display === "none" ? "block" : "none";
+  if (ta.style.display === "block") ta.focus();
+}
+
+function onNoteInput(dim) {
+  const tog = document.getElementById("ntog-" + dim);
+  const ta = document.getElementById("note-" + dim);
+  if (tog && ta) tog.classList.toggle("has-note", ta.value.trim().length > 0);
+}
+
+// ── Save & navigate ───────────────────────────────────────────────────────────
+function recordKey(r) { return r.record_id; }
+
+function _selectedWinner(dim) {
+  const on = document.querySelector(`#seg-${dim} .seg-btn.on`);
+  return on ? on.dataset.w : null;
+}
+
+// Identity fields carried through from the record into the export (never displayed).
+const META_FIELDS = ["question_id", "model_a", "model_b",
+                     "inference_type_a", "inference_type_b", "position"];
+
+function saveCurrentState() {
+  // Persist current form state (does NOT mark complete — only saveAndNext does).
+  if (records.length === 0) return;
+  const r = records[current];
+  const ann = { record_id: r.record_id };
+  META_FIELDS.forEach(k => { ann[k] = r[k] ?? ""; });
+  DIMS.forEach(dim => {
+    const winner = _selectedWinner(dim);
+    const note = document.getElementById("note-" + dim)?.value.trim() || null;
+    ann[dim] = { winner, note };
+  });
+  annotations[recordKey(r)] = ann;
+}
+
+function isCardComplete() {
+  return DIMS.every(dim => _selectedWinner(dim));
+}
+
+function markComplete(idx) {
+  completed.add(idx);
+  const checkEl = document.getElementById("check-" + idx);
+  if (checkEl) checkEl.textContent = "✓";
+  const navItem = document.getElementById("nav-" + idx);
+  if (navItem) navItem.classList.add("done");
+}
+
+function saveAndNext() {
+  saveCurrentState();
+  if (isCardComplete()) {
+    markComplete(current);
+  } else {
+    document.getElementById("skip-notice").textContent = "Pick a winner on every dimension first.";
+    persistState();
+    return;
+  }
+  persistState();
+  if (current < records.length - 1) {
+    renderCard(current + 1);
+  } else {
+    document.getElementById("skip-notice").textContent = "All cards reviewed!";
+  }
+  updateProgress();
+}
+
+function skipCard() {
+  saveCurrentState();
+  persistState();
+  if (current < records.length - 1) renderCard(current + 1);
+}
+
+function navigate(delta) {
+  saveCurrentState();
+  persistState();
+  const next = current + delta;
+  if (next >= 0 && next < records.length) renderCard(next);
+  updateProgress();
+}
+
+function updateProgress() {
+  const n = records.length;
+  const done = completed.size;
+  document.getElementById("progress-label").textContent = `${done} / ${n} reviewed`;
+  document.getElementById("progress-bar").style.width = n > 0 ? (done / n * 100) + "%" : "0%";
+}
+
+// ── Export ────────────────────────────────────────────────────────────────────
+function exportAnnotations() {
+  // Flush the current card: if it's fully judged, include it even if the
+  // annotator hasn't pressed Save & Next yet.
+  saveCurrentState();
+  if (isCardComplete()) { markComplete(current); }
+  persistState();
+  updateProgress();
+  const out = [...completed].sort((a, b) => a - b)
+    .map(i => annotations[recordKey(records[i])])
+    .filter(Boolean);
+  if (out.length === 0) { alert("No completed annotations to export yet."); return; }
+  const ts = new Date().toISOString().replace(/[:.]/g, "-").slice(0, 19);
+  const blob = new Blob([JSON.stringify(out, null, 2)], { type: "application/json" });
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement("a");
+  a.href = url; a.download = `elo_annotations_${ts}.json`; a.click();
+  URL.revokeObjectURL(url);
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function escHtml(s) {
+  return String(s).replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;");
+}
+function capitalize(s) { return s.charAt(0).toUpperCase() + s.slice(1); }
+</script>
+</body>
+</html>
