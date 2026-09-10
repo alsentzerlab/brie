@@ -1,0 +1,28 @@
+system: |
+  You are evaluating clinical fact entailment. Return only a JSON array of zero-based indices.
+recall: |
+  Identify REFERENCE facts entailed by the CANDIDATE facts.
+
+  Preserve negation, uncertainty, subject, event identity, and temporal order.
+  Accept paraphrase and logically equivalent granularity. Do not treat nearby
+  but distinct encounters as the same event, and do not infer an unstated
+  treatment, outcome, measurement, or date.
+
+  REFERENCE facts:
+  {REFERENCE_FACTS}
+
+  CANDIDATE facts:
+  {CANDIDATE_FACTS}
+precision: |
+  Identify CANDIDATE facts entailed by the REFERENCE facts.
+
+  Preserve negation, uncertainty, subject, event identity, and temporal order.
+  Accept paraphrase and logically equivalent granularity. Do not treat nearby
+  but distinct encounters as the same event, and do not infer an unstated
+  treatment, outcome, measurement, or date.
+
+  REFERENCE facts:
+  {REFERENCE_FACTS}
+
+  CANDIDATE facts:
+  {CANDIDATE_FACTS}
