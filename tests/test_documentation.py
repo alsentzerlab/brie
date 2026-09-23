@@ -32,3 +32,10 @@ def test_documented_brie_modules_exist() -> None:
     }
     missing = sorted(module for module in modules if importlib.util.find_spec(module) is None)
     assert not missing, "documented modules do not exist: " + ", ".join(missing)
+
+
+def test_readme_details_blocks_are_balanced() -> None:
+    text = (ROOT / "README.md").read_text(encoding="utf-8")
+    blocks = re.findall(r"<details>.*?</details>", text, flags=re.DOTALL)
+    assert len(blocks) == text.count("<details>") == text.count("</details>")
+    assert all("<summary>" in block and "</summary>" in block for block in blocks)

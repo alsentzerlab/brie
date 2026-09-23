@@ -20,8 +20,7 @@ be provided separately.
 
 [![Overview of the BRIE benchmark and generation framework](docs/brie_living.png)](docs/brie_living.pdf)
 
-*Overview of the BRIE benchmark and generation framework. Select the image to
-open the vector PDF.*
+*Overview of the BRIE benchmark and generation framework.*
 
 ## Documentation
 
@@ -32,7 +31,8 @@ open the vector PDF.*
 - [Script inventory](docs/SCRIPT_INVENTORY.md): retained code paths and
   intentionally excluded repair or migration utilities.
 
-## Repository contents
+<details>
+<summary><strong>Repository contents</strong></summary>
 
 - `brie.generation`: fact extraction, question generation and filtering,
   topic assignment, reference-answer generation and revision, and evidence
@@ -45,7 +45,12 @@ open the vector PDF.*
 - `scripts/`: generic entry points for the three top-level workflows and the
   repository audit.
 
-## Installation
+</details>
+
+## Usage
+
+<details>
+<summary><strong>1. Install and configure BRIE</strong></summary>
 
 BRIE requires Python 3.10 or newer and uses `uv` for a locked environment.
 Python 3.12 is the reference runtime.
@@ -79,7 +84,10 @@ The complete provider-variable list is in the
 [data contract](docs/DATA_FORMAT.md#provider-configuration). Do not place
 secrets in this checkout.
 
-## External data layout
+</details>
+
+<details>
+<summary><strong>2. Prepare and validate external data</strong></summary>
 
 Keep input data and generated artifacts outside the repository:
 
@@ -117,7 +125,10 @@ and keep inputs, responses, caches, logs, and evaluation outputs under the
 applicable data controls. Exact schemas are documented in the
 [data contract](docs/DATA_FORMAT.md).
 
-## 1. Generate a dataset
+</details>
+
+<details>
+<summary><strong>3. Generate a benchmark</strong></summary>
 
 Skip this section when using an existing BRIE release. Dataset construction
 expects the canonical note files plus one admission-summary file per subject,
@@ -149,7 +160,10 @@ Each module exposes its complete input contract with `--help`; the generated
 files and required columns are listed in the
 [dataset-construction data contract](docs/DATA_FORMAT.md#dataset-construction-inputs-and-outputs).
 
-## 2. Generate model responses
+</details>
+
+<details>
+<summary><strong>4. Generate model responses</strong></summary>
 
 The generic launcher runs full-context inference:
 
@@ -187,7 +201,10 @@ require their corresponding precomputation command and an external embedding
 directory. All inference paths enforce the question timestamp cutoff before
 constructing model context.
 
-## 3. Evaluate responses
+</details>
+
+<details>
+<summary><strong>5. Evaluate responses</strong></summary>
 
 Run general answer metrics:
 
@@ -263,7 +280,10 @@ commands are in the [data contract](docs/DATA_FORMAT.md). Metric definitions
 and the exact-reproduction checklist are in the
 [reproducibility guide](docs/REPRODUCIBILITY.md).
 
-## Verification
+</details>
+
+<details>
+<summary><strong>6. Verify the repository</strong></summary>
 
 Before using or publishing a change, run:
 
@@ -274,6 +294,8 @@ uv run bash scripts/check_repository.sh
 This validates the lockfile, parses and lints Python and Bash files, runs the
 tests, loads every retained CLI, rejects data/output artifacts, and scans for
 embedded credentials, internal paths, endpoints, and long identifiers.
+
+</details>
 
 ## Citation
 
