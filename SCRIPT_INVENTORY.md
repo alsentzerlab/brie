@@ -13,7 +13,8 @@ and migration utilities were intentionally excluded.
 - `generation/generate_questions.py`: create recent, past, and multi-event questions.
 - `generation/filter_questions.py`: select useful, answerable, non-leaking questions.
 - `generation/get_topics.py`: assign clinical topics.
-- `generation/generate_answer.py` and `revise_answer.py`: create and refine references.
+- `generation/generate_multiple_answers.py` (backed by `generate_answer.py`) and
+  `revise_answer.py`: create multiple grounded QA variants and refine references.
 - `generation/get_factspans.py`: evidence/span annotation preparation.
 - `generation/batch_utils.py`, `utils.py`, and `prompts/`: shared runtime code.
 
@@ -35,6 +36,9 @@ and migration utilities were intentionally excluded.
 - `evaluation/score_elo_batch.py`: pairwise judgments, win rates, and Elo inputs.
 - `evaluation/hallucination/score.py`: unsupported-claim rate and answer-level flags.
 - `evaluation/temporality/score.py`: future-note leakage and dated-fact consistency.
+- `evaluation/find_facts.py`: locate each answer fact in the longitudinal record,
+  flag unsupported/hallucinated facts, and position supported facts relative to
+  the question cutoff.
 - `evaluation/fact_annotation/` and `elo_annotation/`: human agreement,
   adjudication, held-out prompt evaluation, and few-shot example construction.
 

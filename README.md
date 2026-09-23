@@ -118,7 +118,7 @@ spans:
 
 ```bash
 uv run python -m brie.generation.get_topics --help
-uv run python -m brie.generation.generate_answer --help
+uv run python -m brie.generation.generate_multiple_answers --help
 uv run python -m brie.generation.revise_answer --help
 uv run python -m brie.generation.get_factspans --help
 ```
@@ -193,6 +193,26 @@ uv run python -m brie.evaluation.hallucination.score \
   "$BRIE_RUN/fact_scores.csv" \
   "$BRIE_RUN/hallucination.csv"
 ```
+
+To identify exactly which candidate facts are unsupported and locate supported
+facts in the longitudinal timeline, run the record-level provenance search:
+
+```bash
+uv run python -m brie.evaluation.find_facts \
+  --facts "$BRIE_RUN/atomic_facts.csv" \
+  --questions "$BRIE_DATA/questions.csv" \
+  --notes "$BRIE_DATA/notes" \
+  --output "$BRIE_RUN/fact_provenance.jsonl" \
+  --facts-column facts_atomic \
+  --retrieval bm25 \
+  --model gemini_flash
+```
+
+Each output row includes `is_hallucinated`, `timeline_position`, the earliest
+and latest supporting-note dates, exact evidence, and retrieval metadata. A
+model/API failure is labeled `inconclusive`, never hallucinated. Use
+`--retrieval hybrid --embeddings-dir <external-directory>` for BM25 plus dense
+retrieval.
 
 Audit retrieval for future-note leakage:
 

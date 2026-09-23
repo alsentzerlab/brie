@@ -168,7 +168,8 @@ produce:
 | `filter_questions` | `questions_filtered.csv`; its `question_id`, `natural_query`, `timestamp`, `answer`, and `facts` columns are compatible with downstream tools. |
 | `get_topics` | Input rows plus serialized `question_topics`. |
 
-`generate_answer` is a separate augmentation path. Its input requires
+`generate_multiple_answers` is a separate augmentation path (the implementation
+is shared with the backward-compatible `generate_answer` module). Its input requires
 `question_id`, `question`, `original_question`, `answer`, and `facts`; it reads
 per-subject fact TSVs and writes `answers.csv` under `--output`. It also requires
 external `--log` and `--checkpoint` directories. `revise_answer` expects
@@ -233,6 +234,14 @@ python -m brie.evaluation.hallucination.score \
 
 For a custom file containing all candidate facts and supported facts or their
 indices, pass `--facts-column` and `--supported-column`.
+
+For per-fact provenance and timing, `evaluation.find_facts` accepts either a
+row-per-fact CSV (`fact`) or a serialized fact-list column such as
+`facts_atomic`. It writes resumable JSONL with `status`, `is_hallucinated`,
+`timeline_position`, earliest/latest supporting dates, confirmation errors, and
+supporting note entries. Here, hallucinated means that the configured record
+search completed without finding support; failed model confirmations are
+reported as inconclusive.
 
 ## Temporality and leakage
 
