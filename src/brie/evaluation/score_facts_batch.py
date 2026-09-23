@@ -32,6 +32,7 @@ import pandas as pd
 from google import genai
 from google.genai.types import CreateBatchJobConfig
 
+from .prompts import FACT_ENTAILMENT
 from .utils import (  # type: ignore[reportAttributeAccessIssue]
     VERTEX_LOCATION,
     VERTEX_GEMINI_PROJECT,
@@ -60,115 +61,10 @@ log = logging.getLogger(__name__)
 GEMINI_MODEL_ID = _VERTEX_GEMINI_MODELS["gemini_flash_juror"]
 JURORS = ["gemini", "claude", "gpt"]
 
-SYSTEM_PROMPT = (
-    "You are a clinician performing chart review. "
-    "Respond only with a valid JSON array — no markdown, no explanation."
-)
-
-RECALL_PROMPT = """\
-Given a list of REFERENCE facts and a list of CANDIDATE facts, identify which \
-REFERENCE facts are semantically entailed by any of the CANDIDATE facts.
-Respond with a JSON array of 0-based indices of the REFERENCE facts that are entailed. \
-Return [] if none are entailed.
-
-Judge as a clinician reviewing the chart would, not as a literal string matcher. The \
-usual error is being too conservative — marking a REFERENCE fact absent because no \
-CANDIDATE fact restates it in the same words, when the CANDIDATE facts plainly cover it.
-
-## Rules
-1. A REFERENCE fact is entailed if the CANDIDATE facts, taken together, assert it — it \
-   need not be restated by a single CANDIDATE fact.
-2. Both lists are atomized, so a dated event is split into a bare event anchor \
-   ("A hemodynamic measurement was performed on <DATE>.") plus separate date-free \
-   facts giving that event's details, findings, or results. Judge an anchor by its \
-   details, not by its date: the anchor is entailed whenever the CANDIDATE facts assert \
-   those details, even if no CANDIDATE fact mentions the date or names the event type.
-3. Two events belong to the same episode of care when their dates match, fall within \
-   about two weeks of each other, or one is given only as a month or an approximate \
-   date. Do not require an exact date match: when one date gives only a month and year, \
-   and they match the other date's month and year, treat them as the same event. Treat \
-   events as separate only when the dates clearly indicate different encounters.
-4. Within one episode of care, a REFERENCE fact describing a component, step, or \
-   routine part of a larger event is entailed by a CANDIDATE fact describing that \
-   larger event: an encounter entails the medications, fluids, and assessments given \
-   during it, and a procedure entails the measurements and specimens it ordinarily \
-   involves.
-5. Wording and granularity need not match. A fact may be more specific in one respect \
-   (naming the drug, device, or site) and less specific in another (a month rather than \
-   a day); neither difference blocks entailment, in either direction.
-6. Entail on semantic equivalence or logical implication, not only on restatement. If a \
-   CANDIDATE fact means the same thing in different words, or logically implies the \
-   REFERENCE fact, mark it entailed — a stated consequence of a symptom implies the \
-   symptom, resuming or restarting a treatment implies that it was initiated, and a \
-   documented trial of a treatment implies that it was given.
-7. One supporting CANDIDATE fact is enough. Judge each REFERENCE fact on its own, and \
-   do not withhold entailment because other CANDIDATE facts describe related events \
-   pointing a different way: a separate or later event involving the same medication, \
-   problem, or procedure does not cancel an earlier one.
-8. Only two things block entailment: the CANDIDATE facts describe no related event or \
-   encounter at all, or a CANDIDATE fact directly denies the REFERENCE fact itself. A \
-   treatment tried without benefit still entails that it was given, but does not entail \
-   that it helped.
-
-### Reference facts
-{REFERENCE_FACTS}
-
-### Candidate facts
-{CANDIDATE_FACTS}
-"""
-
-PRECISION_PROMPT = """\
-Given a list of REFERENCE facts and a list of CANDIDATE facts, identify which \
-CANDIDATE facts are semantically entailed by any of the REFERENCE facts.
-Respond with a JSON array of 0-based indices of the CANDIDATE facts that are entailed. \
-Return [] if none are entailed.
-
-Judge as a clinician reviewing the chart would, not as a literal string matcher. The \
-usual error is being too conservative — marking a CANDIDATE fact absent because no \
-REFERENCE fact restates it in the same words, when the REFERENCE facts plainly cover it.
-
-## Rules
-1. A CANDIDATE fact is entailed if the REFERENCE facts, taken together, assert it — it \
-   need not be restated by a single REFERENCE fact.
-2. Both lists are atomized, so a dated event is split into a bare event anchor \
-   ("An Emergency Department visit occurred on <DATE>.") plus separate \
-   date-free facts giving that event's details, findings, or results. Judge an anchor by \
-   its details, not by its date: the anchor is entailed whenever the REFERENCE facts \
-   assert those details, even if no REFERENCE fact mentions the date or names the event \
-   type.
-3. Two events belong to the same episode of care when their dates match, fall within \
-   about two weeks of each other, or one is given only as a month or an approximate \
-   date. Do not require an exact date match: when one date gives only a month and year, \
-   and they match the other date's month and year, treat them as the same event. Treat \
-   events as separate only when the dates clearly indicate different encounters.
-4. Within one episode of care, a CANDIDATE fact describing a component, step, or \
-   routine part of a larger event is entailed by a REFERENCE fact describing that \
-   larger event: an encounter entails the medications, fluids, and assessments given \
-   during it, and a procedure entails the measurements and specimens it ordinarily \
-   involves.
-5. Wording and granularity need not match. A fact may be more specific in one respect \
-   (naming the drug, device, or site) and less specific in another (a month rather than \
-   a day); neither difference blocks entailment, in either direction.
-6. Entail on semantic equivalence or logical implication, not only on restatement. If a \
-   REFERENCE fact means the same thing in different words, or logically implies the \
-   CANDIDATE fact, mark it entailed — a stated consequence of a symptom implies the \
-   symptom, resuming or restarting a treatment implies that it was initiated, and a \
-   documented trial of a treatment implies that it was given.
-7. One supporting REFERENCE fact is enough. Judge each CANDIDATE fact on its own, and \
-   do not withhold entailment because other REFERENCE facts describe related events \
-   pointing a different way: a separate or later event involving the same medication, \
-   problem, or procedure does not cancel an earlier one.
-8. Only two things block entailment: the REFERENCE facts describe no related event or \
-   encounter at all, or a REFERENCE fact directly denies the CANDIDATE fact itself. A \
-   treatment tried without benefit still entails that it was given, but does not entail \
-   that it helped.
-
-### Reference facts
-{REFERENCE_FACTS}
-
-### Candidate facts
-{CANDIDATE_FACTS}
-"""
+# Prompts are packaged as public, versioned evaluation assets.
+SYSTEM_PROMPT = FACT_ENTAILMENT["system"]
+RECALL_PROMPT = FACT_ENTAILMENT["recall"]
+PRECISION_PROMPT = FACT_ENTAILMENT["precision"]
 
 # Per-juror (input $/1M, output $/1M)
 # Gemini 3.1 Flash-Lite Vertex batch (Global)

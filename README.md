@@ -30,6 +30,10 @@ be provided separately.
   evaluation definitions, and the recommended reproduction order.
 - [Script inventory](docs/SCRIPT_INVENTORY.md): retained code paths and
   intentionally excluded repair or migration utilities.
+- Final evaluation prompts:
+  [fact entailment](src/brie/evaluation/prompts/fact_entailment.yaml) and
+  [pairwise Elo](src/brie/evaluation/prompts/elo_pairwise.yaml). The evaluators
+  load these files directly.
 
 <details>
 <summary><strong>Repository contents</strong></summary>

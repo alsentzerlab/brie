@@ -39,5 +39,8 @@ dev = ["pytest==8.4.2", "ruff==0.13.0"]
 [tool.setuptools.packages.find]
 where = ["src"]
 
+[tool.setuptools.package-data]
+"brie.evaluation.prompts" = ["*.yaml"]
+
 [tool.ruff]
 line-length = 100

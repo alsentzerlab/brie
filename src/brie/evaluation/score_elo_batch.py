@@ -43,6 +43,7 @@ import pandas as pd
 from google import genai
 from google.genai.types import CreateBatchJobConfig
 
+from .prompts import ELO_PAIRWISE
 from .utils import (
     VERTEX_LOCATION,
     VERTEX_GEMINI_PROJECT,
@@ -96,50 +97,9 @@ ELO_FIELDS = [
 ]
 
 # ── Prompts ───────────────────────────────────────────────────────────────────
-SYSTEM_PROMPT = (
-    "You are a medical expert evaluating clinical information retrieval responses. "
-    "Respond only with a valid JSON object — no markdown, no explanation outside the JSON."
-)
-
-PAIRWISE_PROMPT = """\
-You are a medical expert comparing two responses to a clinical information retrieval query.
-Given a reference answer (gold standard) and two candidate responses (A and B), decide which
-response is better on each of the following dimensions, or declare a tie.
-
-Question:
-<question>{QUESTION}</question>
-
-Reference answer:
-<reference>{REFERENCE}</reference>
-
-Response A:
-<response_a>{RESPONSE_A}</response_a>
-
-Response B:
-<response_b>{RESPONSE_B}</response_b>
-
-Evaluate on these three dimensions:
-
-Completeness: Which response includes more of the important clinical details present in the \
-reference answer? Prefer the response that omits fewer key facts.
-
-Relevancy: Which response stays closer to what the question asks and the reference answer \
-covers, without introducing unnecessary or tangential details?
-
-Concision: Which response communicates the necessary information more concisely, without \
-excessive verbosity or redundant phrasing?
-
-For each dimension, output "A", "B", or "tie".
-
-Output Format:
-{{
-    "completeness": {{"winner": "A" | "B" | "tie", "explanation": "..."}},
-    "relevancy":    {{"winner": "A" | "B" | "tie", "explanation": "..."}},
-    "concision":    {{"winner": "A" | "B" | "tie", "explanation": "..."}}
-}}
-
-Ensure the output is valid JSON with double quotes for all keys and string values.\
-"""
+# This packaged file is the exact prompt used by the production scorer.
+SYSTEM_PROMPT = ELO_PAIRWISE["system"]
+PAIRWISE_PROMPT = ELO_PAIRWISE["pairwise"]
 
 
 # ── Pair generation ───────────────────────────────────────────────────────────

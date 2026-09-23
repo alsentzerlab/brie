@@ -103,9 +103,11 @@ applications. Sampling scripts inject external records at runtime. Merge and
 agreement scripts consume exported annotations outside the repository.
 
 `build_fact_examples.py` and `build_elo_examples.py` create few-shot message
-files. Pass those through `--examples`. The current generic entailment prompt
-is `fact_annotation/prompt_versions/current.yaml`. This is prompt/ICL
-calibration; there is no weight-updating training code.
+files. Pass those through `--examples`. The exact final evaluation prompts are
+packaged at `src/brie/evaluation/prompts/fact_entailment.yaml` and
+`src/brie/evaluation/prompts/elo_pairwise.yaml`; the production scorers and
+few-shot builders load these files directly. This is prompt/ICL calibration;
+there is no weight-updating training code.
 
 ## Repository self-check
 

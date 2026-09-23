@@ -292,3 +292,17 @@ IDs with `python -m brie.evaluation.fact_annotation.eval_entailment_prompt
 This is prompt and in-context-example tuning only. No module updates model
 weights, and annotation exports or generated few-shot files must remain outside
 the repository.
+
+## Final evaluation prompts
+
+The exact prompts used by the production evaluation commands are committed as
+package data:
+
+- `src/brie/evaluation/prompts/fact_entailment.yaml` contains the system,
+  recall, and precision prompts used by `score_facts_batch`.
+- `src/brie/evaluation/prompts/elo_pairwise.yaml` contains the system and
+  pairwise comparison prompts used by `score_elo_batch`.
+
+The scorers load these files directly; they are not documentation-only copies.
+Human-calibrated few-shot messages supplied with `--examples` are prepended to
+the corresponding task prompt and should be versioned with each external run.

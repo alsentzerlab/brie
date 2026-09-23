@@ -39,6 +39,8 @@ and migration utilities were intentionally excluded.
 - `evaluation/find_facts.py`: locate each answer fact in the longitudinal record,
   flag unsupported/hallucinated facts, and position supported facts relative to
   the question cutoff.
+- `evaluation/prompts/fact_entailment.yaml` and `elo_pairwise.yaml`: exact final
+  prompts loaded by the production fact-entailment and Elo evaluators.
 - `evaluation/fact_annotation/` and `elo_annotation/`: human agreement,
   adjudication, held-out prompt evaluation, and few-shot example construction.
 

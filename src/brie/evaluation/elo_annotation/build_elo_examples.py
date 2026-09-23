@@ -33,50 +33,12 @@ import re
 import sys
 from pathlib import Path
 
-# Prompt template + dimensions — kept byte-for-byte in sync with score_elo_batch.py
-# (PAIRWISE_PROMPT / DIMS). Copied rather than imported so this builder stays
-# dependency-free (the scorer pulls in tiktoken/google at import time).
+from ..prompts import ELO_PAIRWISE
+
+# Use the same packaged prompt as the production pairwise scorer.
 DIMS = ("completeness", "relevancy", "concision")
 
-PAIRWISE_PROMPT = """\
-You are a medical expert comparing two responses to a clinical information retrieval query.
-Given a reference answer (gold standard) and two candidate responses (A and B), decide which
-response is better on each of the following dimensions, or declare a tie.
-
-Question:
-<question>{QUESTION}</question>
-
-Reference answer:
-<reference>{REFERENCE}</reference>
-
-Response A:
-<response_a>{RESPONSE_A}</response_a>
-
-Response B:
-<response_b>{RESPONSE_B}</response_b>
-
-Evaluate on these three dimensions:
-
-Completeness: Which response includes more of the important clinical details present in the \
-reference answer? Prefer the response that omits fewer key facts.
-
-Relevancy: Which response stays closer to what the question asks and the reference answer \
-covers, without introducing unnecessary or tangential details?
-
-Concision: Which response communicates the necessary information more concisely, without \
-excessive verbosity or redundant phrasing?
-
-For each dimension, output "A", "B", or "tie".
-
-Output Format:
-{{
-    "completeness": {{"winner": "A" | "B" | "tie", "explanation": "..."}},
-    "relevancy":    {{"winner": "A" | "B" | "tie", "explanation": "..."}},
-    "concision":    {{"winner": "A" | "B" | "tie", "explanation": "..."}}
-}}
-
-Ensure the output is valid JSON with double quotes for all keys and string values.\
-"""
+PAIRWISE_PROMPT = ELO_PAIRWISE["pairwise"]
 
 _B64_RE = re.compile(r'JSON\.parse\(atob\("([A-Za-z0-9+/=]+)"\)\)')
 
