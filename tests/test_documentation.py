@@ -6,9 +6,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 DOCS = [
     ROOT / "README.md",
-    ROOT / "DATA_FORMAT.md",
-    ROOT / "REPRODUCIBILITY.md",
-    ROOT / "SCRIPT_INVENTORY.md",
+    ROOT / "docs" / "DATA_FORMAT.md",
+    ROOT / "docs" / "REPRODUCIBILITY.md",
+    ROOT / "docs" / "SCRIPT_INVENTORY.md",
 ]
 
 

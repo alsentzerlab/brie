@@ -168,11 +168,12 @@ produce:
 | `filter_questions` | `questions_filtered.csv`; its `question_id`, `natural_query`, `timestamp`, `answer`, and `facts` columns are compatible with downstream tools. |
 | `get_topics` | Input rows plus serialized `question_topics`. |
 
-`generate_multiple_answers` is a separate augmentation path (the implementation
-is shared with the backward-compatible `generate_answer` module). Its input requires
-`question_id`, `question`, `original_question`, `answer`, and `facts`; it reads
-per-subject fact TSVs and writes `answers.csv` under `--output`. It also requires
-external `--log` and `--checkpoint` directories. `revise_answer` expects
+`generate_multiple_answers` is a separate augmentation path. It shares its
+implementation with the backward-compatible `generate_answer` module. Its
+input requires `question_id`, `question`, `original_question`, `answer`, and
+`facts`; it reads per-subject fact TSVs and writes `answers.csv` under
+`--output`. It also requires external `--log` and `--checkpoint` directories.
+`revise_answer` expects
 `question_id`, `timestamp`, `question`, `answer`, and `comment` and writes
 per-subject revised CSVs. `get_factspans` expects generated and reference answer
 columns plus serialized fact lists and writes one JSON annotation export.

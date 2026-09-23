@@ -1,10 +1,36 @@
 # BRIE
 
-BRIE contains the code used to build longitudinal clinical question-answer
-datasets, generate model responses with full-context and retrieval-based
-methods, and evaluate those responses. The repository contains code only: it
-does not include clinical records, questions, annotations, model outputs,
-credentials, or precomputed results.
+BRIE (Benchmark to Retrieve Information in EHRs) is a living clinical
+information-retrieval benchmark for evaluating how well models and agents find
+patient information in longitudinal clinical notes. Its scalable generation
+framework automatically creates question-answer pairs from EHRs. Nineteen
+clinicians completed 144,036 individual annotations to validate the accuracy
+and clinical relevance of the benchmark items.
+
+BRIE organizes its evaluations along three axes—reasoning, temporality, and
+clinical topic—to expose distinct failure modes in state-of-the-art retrieval
+systems. Because the generation framework itself is validated, BRIE can be
+refreshed with new encounters to reduce benchmark leakage and measure
+performance drift while limiting the need for repeated clinician filtering.
+
+This repository contains the code for generating BRIE-style benchmarks,
+producing model responses with full-context and retrieval-based methods, and
+evaluating those responses. The benchmark data and full release details will
+be provided separately.
+
+[![Overview of the BRIE benchmark and generation framework](docs/brie_living.png)](docs/brie_living.pdf)
+
+*Overview of the BRIE benchmark and generation framework. Select the image to
+open the vector PDF.*
+
+## Documentation
+
+- [Data contract and run guide](docs/DATA_FORMAT.md): input schemas, provider
+  configuration, and detailed workflow commands.
+- [Reproducibility guide](docs/REPRODUCIBILITY.md): required run metadata,
+  evaluation definitions, and the recommended reproduction order.
+- [Script inventory](docs/SCRIPT_INVENTORY.md): retained code paths and
+  intentionally excluded repair or migration utilities.
 
 ## Repository contents
 
@@ -19,17 +45,13 @@ credentials, or precomputed results.
 - `scripts/`: generic entry points for the three top-level workflows and the
   repository audit.
 
-Benchmark-repair, one-off rerun, migration, and cohort-specific scripts are
-intentionally excluded. See [SCRIPT_INVENTORY.md](SCRIPT_INVENTORY.md) for the
-retained and excluded source families.
-
 ## Installation
 
 BRIE requires Python 3.10 or newer and uses `uv` for a locked environment.
 Python 3.12 is the reference runtime.
 
 ```bash
-git clone <repository-url>
+git clone https://github.com/alsentzerlab/brie
 cd brie
 uv sync --locked --all-extras
 uv run python -m brie.validate --help
@@ -53,9 +75,9 @@ export BRIE_OPENAI_API_KEY='<secret>'
 export BRIE_OPENAI_MODEL='<model>'
 ```
 
-The complete provider-variable list is in
-[DATA_FORMAT.md](DATA_FORMAT.md#provider-configuration). Do not place secrets
-in this checkout.
+The complete provider-variable list is in the
+[data contract](docs/DATA_FORMAT.md#provider-configuration). Do not place
+secrets in this checkout.
 
 ## External data layout
 
@@ -92,15 +114,15 @@ uv run python -m brie.validate \
 The code treats record identifiers as opaque strings and does not perform
 de-identification. Use it only in an environment approved for the input data,
 and keep inputs, responses, caches, logs, and evaluation outputs under the
-applicable data controls. Exact schemas are documented in
-[DATA_FORMAT.md](DATA_FORMAT.md).
+applicable data controls. Exact schemas are documented in the
+[data contract](docs/DATA_FORMAT.md).
 
 ## 1. Generate a dataset
 
 Skip this section when using an existing BRIE release. Dataset construction
 expects the canonical note files plus one admission-summary file per subject,
 as described under
-[dataset-construction inputs](DATA_FORMAT.md#dataset-construction-inputs-and-outputs).
+[dataset-construction inputs](docs/DATA_FORMAT.md#dataset-construction-inputs-and-outputs).
 
 Run fact extraction, question generation, and question filtering:
 
@@ -124,8 +146,8 @@ uv run python -m brie.generation.get_factspans --help
 ```
 
 Each module exposes its complete input contract with `--help`; the generated
-files and required columns are listed in
-[DATA_FORMAT.md](DATA_FORMAT.md#dataset-construction-inputs-and-outputs).
+files and required columns are listed in the
+[dataset-construction data contract](docs/DATA_FORMAT.md#dataset-construction-inputs-and-outputs).
 
 ## 2. Generate model responses
 
@@ -237,9 +259,9 @@ uv run python -m brie.evaluation.score_elo_batch \
 ```
 
 Detailed configuration, output schemas, rubric scoring, and human-calibration
-commands are in [DATA_FORMAT.md](DATA_FORMAT.md). Metric definitions and the
-exact-reproduction checklist are in
-[REPRODUCIBILITY.md](REPRODUCIBILITY.md).
+commands are in the [data contract](docs/DATA_FORMAT.md). Metric definitions
+and the exact-reproduction checklist are in the
+[reproducibility guide](docs/REPRODUCIBILITY.md).
 
 ## Verification
 
@@ -252,3 +274,8 @@ uv run bash scripts/check_repository.sh
 This validates the lockfile, parses and lints Python and Bash files, runs the
 tests, loads every retained CLI, rejects data/output artifacts, and scans for
 embedded credentials, internal paths, endpoints, and long identifiers.
+
+## Citation
+
+The BRIE manuscript is in preparation. Citation metadata and an arXiv link will
+be added here when the preprint is publicly available.

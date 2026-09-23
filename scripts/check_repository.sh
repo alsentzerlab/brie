@@ -6,13 +6,16 @@ cd "$repo_dir"
 export MPLCONFIGDIR
 MPLCONFIGDIR=$(mktemp -d)
 
-python -c 'from pathlib import Path; files=list(Path("src").rglob("*.py"))+list(Path("tests").rglob("*.py")); [compile(path.read_text(encoding="utf-8"), str(path), "exec") for path in files]; print(f"parsed {len(files)} Python files")'
+python -c 'from pathlib import Path; files=[path for root in (Path("src"), Path("tests")) for path in root.rglob("*.py") if ".ipynb_checkpoints" not in path.parts]; [compile(path.read_text(encoding="utf-8"), str(path), "exec") for path in files]; print(f"parsed {len(files)} Python files")'
 bash -n scripts/*.sh
 uv lock --check
 ruff check src tests
 PYTHONDONTWRITEBYTECODE=1 pytest -q -p no:cacheprovider
 
-mapfile -t command_files < <(grep -Rl '__name__.*__main__' src/brie --include='*.py' | sort)
+mapfile -t command_files < <(
+  grep -Rl '__name__.*__main__' src/brie --include='*.py' \
+    --exclude-dir='.ipynb_checkpoints' | sort
+)
 for file in "${command_files[@]}"; do
   module=${file#src/}
   module=${module%.py}
@@ -28,8 +31,15 @@ fi
 
 if git grep -nEI \
   'https?://|/home/|/projects/|/data/|/Users/|arn:aws|medical record number|stanford|alsentzer|cahoon|ema2016|som-nero|shahlab|starr' \
-  -- ':!uv.lock' ':!scripts/check_repository.sh'; then
+  -- ':!README.md' ':!uv.lock' ':!scripts/check_repository.sh'; then
   echo "error: repository contains a prohibited path, endpoint, or identifier" >&2
+  exit 1
+fi
+
+if grep -nEI \
+  'https?://|/home/|/projects/|/data/|/Users/|arn:aws|medical record number|stanford|alsentzer|cahoon|ema2016|som-nero|shahlab|starr' \
+  README.md | grep -Ev '^[0-9]+:git clone https://github\.com/alsentzerlab/brie$'; then
+  echo "error: README contains a prohibited path, endpoint, or identifier" >&2
   exit 1
 fi
 
