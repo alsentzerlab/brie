@@ -5,8 +5,9 @@ approved location outside the checkout and pass its location on the command
 line. The examples below use `$BRIE_DATA` and `$BRIE_RUN`; neither variable has
 a repository default.
 
-All identifiers must be de-identified strings. Never place source-system
-identifiers, names, contact details, or dates of birth in these fields.
+Identifiers are treated as opaque strings; the code does not de-identify them.
+Keep any protected or source-system identifiers in an approved external data
+location and never commit them to this repository.
 
 ## Canonical layout
 
@@ -52,7 +53,7 @@ underscores and encode question IDs as `<subject_id>_<question_index>`.
 
 | Field | Type | Meaning |
 | --- | --- | --- |
-| `question_id` | string | Unique de-identified question key. |
+| `question_id` | string | Unique question key. |
 | `natural_query` | string | Question shown to the model. |
 | `timestamp` | ISO-8601 string | Information cutoff for the question. |
 | `annotation_sub_answer` | string | Reference answer used for scoring. |

@@ -296,7 +296,6 @@ dependencies = [
     { name = "pandas" },
     { name = "pyyaml" },
     { name = "rank-bm25" },
-    { name = "scikit-learn" },
     { name = "tiktoken" },
     { name = "tqdm" },
 ]
@@ -336,7 +335,6 @@ requires-dist = [
     { name = "rank-bm25", specifier = "==0.2.2" },
     { name = "rouge-score", marker = "extra == 'metrics'", specifier = "==0.1.2" },
     { name = "ruff", marker = "extra == 'dev'", specifier = "==0.13.0" },
-    { name = "scikit-learn", specifier = "==1.7.2" },
     { name = "sentence-transformers", marker = "extra == 'retrieval'", specifier = "==5.3.0" },
     { name = "tiktoken", specifier = "==0.13.0" },
     { name = "torch", marker = "extra == 'retrieval'", specifier = "==2.9.0" },

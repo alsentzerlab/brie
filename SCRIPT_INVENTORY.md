@@ -1,8 +1,10 @@
 # Script inventory
 
-The repository was assembled from the experiment code paths that create a
-dataset, produce model answers, or evaluate those answers. Repair and migration
-utilities were intentionally excluded.
+The repository was assembled from the current `synthetic-qa` code paths that
+create a dataset, produce model answers, or evaluate those answers. Files were
+ported into the `brie` package and parameterized rather than copied verbatim so
+that no internal path, service, cohort, or data dependency is embedded. Repair
+and migration utilities were intentionally excluded.
 
 ## Dataset generation
 
@@ -45,6 +47,29 @@ on records held out from example construction.
 Benchmark repairs, index repairs, one-off reruns, data migrations, cohort SQL,
 data files, outputs, logs, cached embeddings, credentials, and infrastructure
 launchers are not part of this repository.
+
+In particular, the source families named `repair_*`, `rerun_*`,
+`recover_*`, `merge_*_repairs`, `finalize_reviewed_*`,
+`prepare_reviewed_*`, and `validate_reviewed_*` are excluded. Cohort-specific
+`elo_*.sh`, provider/cluster launchers, and hard-coded phase/B200 wrappers are
+replaced by the generic commands documented in the README. Legacy formatting
+and annotation exporters that require identity maps or internal warehouse
+tables are also excluded.
+
+The current reusable completeness safeguards from `score_facts_batch.py` and
+`score_elo_batch.py` are retained: incomplete or unparsable judge results fail
+the run instead of silently producing partial scores. Benchmark-specific
+validation and repair changes adjacent to those fixes are not retained.
+
+## Shell entry points
+
+- `scripts/run_generation.sh`: fact extraction, question generation, and
+  question filtering.
+- `scripts/run_inference.sh`: full-context response generation; the same
+  Python package exposes every alternate inference approach.
+- `scripts/run_evaluation.sh`: general answer metrics.
+- `scripts/check_repository.sh`: syntax, lock, lint, test, CLI, artifact, and
+  privacy checks.
 
 Every retained executable is listed above or is a helper used by one of these
 families. Empty HTML annotation applications and the current YAML entailment

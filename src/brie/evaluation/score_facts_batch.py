@@ -811,6 +811,12 @@ async def main(args):
             )
         else:
             target_raw = await run_gpt_batch(prompts, args.gpt_tpm, args.rate)
+        valid_results = sum(value is not None for value in target_raw.values())
+        if len(target_raw) != len(prompts) or valid_results != len(prompts):
+            raise RuntimeError(
+                f"{rerun_juror} juror returned {valid_results}/{len(prompts)} valid results; "
+                "refusing to overwrite scores with missing verdicts"
+            )
         target_org = _organize(prompts, target_raw)
 
         writer = CsvWriter(args.output, OUTPUT_FIELDS, overwrite=True)
@@ -929,10 +935,11 @@ async def main(args):
         )
 
     for juror, results in (("gemini", gemini_raw), ("claude", claude_raw), ("gpt", gpt_raw)):
-        if len(results) != len(prompts):
+        valid_results = sum(value is not None for value in results.values())
+        if len(results) != len(prompts) or valid_results != len(prompts):
             raise RuntimeError(
-                f"{juror} juror returned {len(results)}/{len(prompts)} results; "
-                "refusing to write incomplete scores"
+                f"{juror} juror returned {valid_results}/{len(prompts)} valid results; "
+                "refusing to store missing verdicts as zero scores"
             )
 
     gemini_org = _organize(prompts, gemini_raw)

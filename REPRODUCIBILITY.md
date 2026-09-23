@@ -77,7 +77,7 @@ Only use this path when rebuilding a dataset release:
 
 `process_hp.py` is retained because it produces the normalized admission
 summary table used during dataset analysis, but question generation reads the
-original de-identified admission-summary JSON files.
+external admission-summary JSON files.
 
 ## Evaluation definitions
 
@@ -103,8 +103,8 @@ applications. Sampling scripts inject external records at runtime. Merge and
 agreement scripts consume exported annotations outside the repository.
 
 `build_fact_examples.py` and `build_elo_examples.py` create few-shot message
-files. Pass those through `--examples`. The current de-identified entailment
-prompt is `fact_annotation/prompt_versions/current.yaml`. This is prompt/ICL
+files. Pass those through `--examples`. The current generic entailment prompt
+is `fact_annotation/prompt_versions/current.yaml`. This is prompt/ICL
 calibration; there is no weight-updating training code.
 
 ## Repository self-check

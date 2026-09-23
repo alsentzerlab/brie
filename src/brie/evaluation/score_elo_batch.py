@@ -716,6 +716,11 @@ async def main(args):
             succeeded += 1
 
         log.info(f"Written {succeeded}/{len(pending_rows)} pairwise judgments to {args.output}")
+        if succeeded != len(pending_rows):
+            raise RuntimeError(
+                f"only {succeeded}/{len(pending_rows)} pairwise judgments parsed; "
+                "rerun to fill the remaining keys before computing Elo"
+            )
 
     # ── Compute ELO ───────────────────────────────────────────────────────────
     if not os.path.exists(args.output) or os.path.getsize(args.output) == 0:

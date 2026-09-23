@@ -3,6 +3,8 @@ set -euo pipefail
 
 repo_dir=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 cd "$repo_dir"
+export MPLCONFIGDIR
+MPLCONFIGDIR=$(mktemp -d)
 
 python -c 'from pathlib import Path; files=list(Path("src").rglob("*.py"))+list(Path("tests").rglob("*.py")); [compile(path.read_text(encoding="utf-8"), str(path), "exec") for path in files]; print(f"parsed {len(files)} Python files")'
 bash -n scripts/*.sh
@@ -19,23 +21,21 @@ for file in "${command_files[@]}"; do
 done
 echo "checked ${#command_files[@]} command modules"
 
-if find . \( -path ./.git -o -path ./.venv -o -path ./.pytest_cache -o -path ./.ruff_cache \) -prune -o -type f \( \
-  -name '*.csv' -o -name '*.json' -o -name '*.jsonl' -o -name '*.parquet' -o \
-  -name '*.pkl' -o -name '*.npy' -o -name '*.log' \) -print | grep -q .; then
+if git ls-files | grep -Eq '\.(csv|json|jsonl|parquet|pkl|pickle|npy|npz|pt|bin|log)$'; then
   echo "error: repository contains a data or output artifact" >&2
   exit 1
 fi
 
-if grep -RIE 'https?://|/home/|/projects/|/data/|/Users/|arn:aws|medical record number' \
-  --exclude-dir=.git --exclude-dir=.venv --exclude-dir=.pytest_cache --exclude-dir=.ruff_cache \
-  --exclude=uv.lock --exclude=check_repository.sh .; then
+if git grep -nEI \
+  'https?://|/home/|/projects/|/data/|/Users/|arn:aws|medical record number|stanford|alsentzer|cahoon|ema2016|som-nero|shahlab|starr' \
+  -- ':!uv.lock' ':!scripts/check_repository.sh'; then
   echo "error: repository contains a prohibited path, endpoint, or identifier" >&2
   exit 1
 fi
 
-if grep -RIE 'AKIA[[:alnum:]]{16}|-----BEGIN .*PRIVATE KEY-----|[0-9]{8,}' \
-  --exclude-dir=.git --exclude-dir=.venv --exclude-dir=.pytest_cache --exclude-dir=.ruff_cache \
-  --exclude=uv.lock --exclude=check_repository.sh .; then
+if git grep -nEI \
+  'AKIA[[:alnum:]]{16}|AIza[[:alnum:]_-]{20,}|gh[pousr]_[[:alnum:]]{20,}|xox[baprs]-[[:alnum:]-]{10,}|sk-[[:alnum:]_-]{20,}|-----BEGIN .*PRIVATE KEY-----|[[:alnum:]._%+-]+@[[:alnum:].-]+\.[[:alpha:]]{2,}|[0-9]{8,}' \
+  -- ':!uv.lock' ':!scripts/check_repository.sh'; then
   echo "error: repository contains a possible credential or long identifier" >&2
   exit 1
 fi
