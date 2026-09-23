@@ -7,8 +7,8 @@ framework automatically creates question-answer pairs from EHRs. Nineteen
 clinicians completed 144,036 individual annotations to validate the accuracy
 and clinical relevance of the benchmark items.
 
-BRIE organizes its evaluations along three axes—reasoning, temporality, and
-clinical topic—to expose distinct failure modes in state-of-the-art retrieval
+BRIE organizes its evaluations along three categories (reasoning, temporality, and
+clinical topic) to expose distinct failure modes in state-of-the-art retrieval
 systems. Because the generation framework itself is validated, BRIE can be
 refreshed with new encounters to reduce benchmark leakage and measure
 performance drift while limiting the need for repeated clinician filtering.
@@ -35,8 +35,7 @@ be provided separately.
   [pairwise Elo](src/brie/evaluation/prompts/elo_pairwise.yaml). The evaluators
   load these files directly.
 
-<details>
-<summary><strong>Repository contents</strong></summary>
+## Contents
 
 - `brie.generation`: fact extraction, question generation and filtering,
   topic assignment, reference-answer generation and revision, and evidence
@@ -49,7 +48,6 @@ be provided separately.
 - `scripts/`: generic entry points for the three top-level workflows and the
   repository audit.
 
-</details>
 
 ## Usage
 
