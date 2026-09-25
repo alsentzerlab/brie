@@ -301,5 +301,14 @@ embedded credentials, internal paths, endpoints, and long identifiers.
 
 ## Citation
 
-The BRIE manuscript is in preparation. Citation metadata and an arXiv link will
-be added here when the preprint is publicly available.
+```
+@misc{cahoon2026livingbenchmarkinformationretrieval,
+      title={A Living Benchmark for Information Retrieval from Electronic Health Records}, 
+      author={Jordan L. Cahoon and Chloe O. Stanwyck and Sulaiman Somani and Philip Chung and Kevin R Keet and Kameron C. Black and Andrea T. Fisher and Sarita Khemani and Jerry Liu and Stephen Ma and Saloni K. Maharaj and Rita M. Pandya and Eduardo Perez-Guerrero and Priyanka Pillai and Lisa Shieh and David J. H. Wu and James Xie and James C. McAvoy and Teresa Nguyen and Jessica Tran and Lucy Yin and Bridget Lin and Alison Callahan and Jason A. Fries and Nigam H. Shah and Emily Alsentzer},
+      year={2026},
+      eprint={2609.30205},
+      archivePrefix={arXiv},
+      primaryClass={cs.AI},
+      url={https://arxiv.org/abs/2609.30205}, 
+}
+```
