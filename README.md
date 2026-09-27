@@ -28,8 +28,6 @@ be provided separately.
   configuration, and detailed workflow commands.
 - [Reproducibility guide](docs/REPRODUCIBILITY.md): required run metadata,
   evaluation definitions, and the recommended reproduction order.
-- [Script inventory](docs/SCRIPT_INVENTORY.md): retained code paths and
-  intentionally excluded repair or migration utilities.
 - Final evaluation prompts:
   [fact entailment](src/brie/evaluation/prompts/fact_entailment.yaml) and
   [pairwise Elo](src/brie/evaluation/prompts/elo_pairwise.yaml). The evaluators

@@ -8,7 +8,6 @@ DOCS = [
     ROOT / "README.md",
     ROOT / "docs" / "DATA_FORMAT.md",
     ROOT / "docs" / "REPRODUCIBILITY.md",
-    ROOT / "docs" / "SCRIPT_INVENTORY.md",
 ]
 
 
