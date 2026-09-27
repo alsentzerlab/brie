@@ -34,7 +34,16 @@ metrics = [
   "nltk==3.9.1",
   "rouge-score==0.1.2",
 ]
+inference = [
+  "flashinfer-python==0.6.4",
+  "nvidia-cudnn-frontend>=1.13.0,<1.19.0",
+  "vllm==0.17.1rc1.dev45+gf33251ffc",
+]
 dev = ["pytest==8.4.2", "ruff==0.13.0"]
+
+[tool.uv]
+conflicts = [[{ extra = "retrieval" }, { extra = "inference" }]]
+override-dependencies = ["openai==2.38.0"]
 
 [tool.setuptools.packages.find]
 where = ["src"]
